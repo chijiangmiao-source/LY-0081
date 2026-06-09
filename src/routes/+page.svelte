@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { getRecords, deleteRecord, getSuggestions } from '$lib/storage';
 	import { TRAINING_ITEMS, AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
@@ -26,6 +27,15 @@
 
 	onMount(() => {
 		loadRecords();
+		const recordIdParam = $page.url.searchParams.get('recordId');
+		if (recordIdParam) {
+			setTimeout(() => {
+				const target = records.find((r) => r.id === recordIdParam);
+				if (target) {
+					openDetail(target);
+				}
+			}, 100);
+		}
 	});
 
 	$: validateDateRange(filters.startDate, filters.endDate);

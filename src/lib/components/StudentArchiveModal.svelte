@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import BaseModal from './BaseModal.svelte';
 	import ApexChart from './ApexChart.svelte';
-	import RecordDetailModal from './RecordDetailModal.svelte';
 	import { AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
 	import type { StudentArchive, PracticeRecord, Suggestion } from '$lib/types';
 
@@ -10,12 +9,9 @@
 	export let archive: StudentArchive | null = null;
 	export let suggestions: Suggestion[] = [];
 
-	let detailModalOpen = false;
-	let selectedRecord: PracticeRecord | null = null;
-
 	function openRecordDetail(record: PracticeRecord) {
-		selectedRecord = record;
-		detailModalOpen = true;
+		open = false;
+		goto(`/?recordId=${encodeURIComponent(record.id)}`);
 	}
 
 	function editRecord(id: string) {
@@ -108,7 +104,7 @@
 				</div>
 				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<p class="text-xs text-gray-500 mb-1">总扣分</p>
-					<p class="text-2xl font-bold {getDeductBadgeClass(archive.totalDeduct).includes('red') ? 'text-red-600' : getDeductBadgeClass(archive.totalDeduct).includes('yellow') ? 'text-yellow-600' : 'text-green-600'}">
+					<p class="text-2xl font-bold {getDeductBadgeClass(archive.avgDeduct).includes('red') ? 'text-red-600' : getDeductBadgeClass(archive.avgDeduct).includes('yellow') ? 'text-yellow-600' : 'text-green-600'}">
 						{archive.totalDeduct}
 					</p>
 				</div>
@@ -264,9 +260,3 @@
 		</div>
 	{/if}
 </BaseModal>
-
-<RecordDetailModal
-	bind:open={detailModalOpen}
-	bind:record={selectedRecord}
-	{suggestions}
-/>

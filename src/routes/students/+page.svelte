@@ -211,7 +211,7 @@
 						</div>
 						<div class="bg-gray-50 rounded p-2 text-center">
 							<p class="text-xs text-gray-500 mb-1">总扣分</p>
-							<p class="text-lg font-bold {getDeductTextClass(archive.totalDeduct)}">
+							<p class="text-lg font-bold {getDeductTextClass(archive.avgDeduct)}">
 								{archive.totalDeduct}
 							</p>
 						</div>

@@ -58,7 +58,14 @@
 		},
 		dataLabels: { enabled: false },
 		xaxis: { categories: TRAINING_ITEMS },
-		yaxis: { title: { text: '次数' } },
+		yaxis: {
+			title: { text: '次数' },
+			labels: {
+				formatter: function(val: number) {
+					return Math.round(val).toString();
+				}
+			}
+		},
 		series: [
 			{ name: '练习次数', data: itemStats.map((s) => s.count) },
 			{ name: '需补训次数', data: itemStats.map((s) => s.retrainCount) }
@@ -72,7 +79,14 @@
 		plotOptions: { bar: { columnWidth: '55%' } },
 		dataLabels: { enabled: true },
 		xaxis: { categories: TRAINING_ITEMS },
-		yaxis: { title: { text: '扣分数' } },
+		yaxis: {
+			title: { text: '扣分数' },
+			labels: {
+				formatter: function(val: number) {
+					return Math.round(val).toString();
+				}
+			}
+		},
 		series: [{ name: '总扣分', data: itemStats.map((s) => s.totalDeduct) }],
 		colors: ['#ef4444']
 	};
