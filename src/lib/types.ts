@@ -47,3 +47,26 @@ export interface FilterOptions {
 	startDate: string;
 	endDate: string;
 }
+
+export interface StudentArchive {
+	studentName: string;
+	totalPractices: number;
+	retrainCount: number;
+	totalDeduct: number;
+	avgDeduct: number;
+	errorTypeStats: { type: ErrorType; count: number }[];
+	itemStats: { item: TrainingItem; count: number; avgDeduct: number; retrainCount: number }[];
+	records: PracticeRecord[];
+	firstPracticeDate: string;
+	lastPracticeDate: string;
+	trendData: { date: string; avgDeduct: number }[];
+	commonSuggestions: { content: string; count: number }[];
+}
+
+export interface SuggestionUsage {
+	suggestionId: string;
+	suggestionContent: string;
+	errorType: ErrorType;
+	usageByStudent: { studentName: string; count: number; recordIds: string[] }[];
+	totalUsage: number;
+}

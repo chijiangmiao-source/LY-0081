@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import { STORAGE_KEYS } from './constants';
-import type { PracticeRecord, Suggestion } from './types';
+import type { PracticeRecord, Suggestion, StudentArchive, SuggestionUsage, ErrorType, TrainingItem } from './types';
 
 export function getRecords(): PracticeRecord[] {
 	if (!browser) return [];
@@ -104,4 +104,131 @@ export function generateRecordNo(): string {
 	const records = getRecords();
 	const todayCount = records.filter((r) => r.recordNo.startsWith(dateStr)).length + 1;
 	return `${dateStr}${String(todayCount).padStart(3, '0')}`;
+}
+
+export function getStudentArchives(
+	startDate?: string,
+	endDate?: string
+): StudentArchive[] {
+	const records = getRecords();
+	const filtered = records.filter((r) => {
+		const matchStart = !startDate || r.practiceDate >= startDate;
+		const matchEnd = !endDate || r.practiceDate <= endDate;
+		return matchStart && matchEnd;
+	});
+
+	const studentNames = [...new Set(filtered.map((r) => r.studentName))];
+
+	return studentNames.map((name) => {
+		const studentRecords = filtered
+			.filter((r) => r.studentName === name)
+			.sort((a, b) => (a.practiceDate > b.practiceDate ? 1 : -1));
+
+		const totalDeduct = studentRecords.reduce((sum, r) => sum + r.deductCount, 0);
+		const retrainCount = studentRecords.filter((r) => r.needRetraining).length;
+		const avgDeduct = studentRecords.length > 0 ? Number((totalDeduct / studentRecords.length).toFixed(1)) : 0;
+
+		const errorTypeMap = new Map<ErrorType, number>();
+		studentRecords.forEach((r) => {
+			errorTypeMap.set(r.mainErrorType, (errorTypeMap.get(r.mainErrorType) || 0) + 1);
+		});
+		const errorTypeStats = [...errorTypeMap.entries()]
+			.map(([type, count]) => ({ type, count }))
+			.sort((a, b) => b.count - a.count);
+
+		const itemMap = new Map<TrainingItem, { count: number; totalDeduct: number; retrainCount: number }>();
+		studentRecords.forEach((r) => {
+			const existing = itemMap.get(r.trainingItem) || { count: 0, totalDeduct: 0, retrainCount: 0 };
+			itemMap.set(r.trainingItem, {
+				count: existing.count + 1,
+				totalDeduct: existing.totalDeduct + r.deductCount,
+				retrainCount: existing.retrainCount + (r.needRetraining ? 1 : 0)
+			});
+		});
+		const itemStats = [...itemMap.entries()].map(([item, data]) => ({
+			item,
+			count: data.count,
+			avgDeduct: data.count > 0 ? Number((data.totalDeduct / data.count).toFixed(1)) : 0,
+			retrainCount: data.retrainCount
+		}));
+
+		const dates = [...new Set(studentRecords.map((r) => r.practiceDate))].sort();
+		const trendData = dates.map((date) => {
+			const dayRecords = studentRecords.filter((r) => r.practiceDate === date);
+			const sum = dayRecords.reduce((s, r) => s + r.deductCount, 0);
+			return {
+				date,
+				avgDeduct: dayRecords.length > 0 ? Number((sum / dayRecords.length).toFixed(1)) : 0
+			};
+		});
+
+		const suggestionMap = new Map<string, number>();
+		studentRecords.forEach((r) => {
+			if (r.improvementSuggestion) {
+				const lines = r.improvementSuggestion
+					.split(/\n|•/)
+					.map((s) => s.trim())
+					.filter((s) => s.length > 0);
+				lines.forEach((line) => {
+					suggestionMap.set(line, (suggestionMap.get(line) || 0) + 1);
+				});
+			}
+		});
+		const commonSuggestions = [...suggestionMap.entries()]
+			.map(([content, count]) => ({ content, count }))
+			.sort((a, b) => b.count - a.count)
+			.slice(0, 10);
+
+		return {
+			studentName: name,
+			totalPractices: studentRecords.length,
+			retrainCount,
+			totalDeduct,
+			avgDeduct,
+			errorTypeStats,
+			itemStats,
+			records: studentRecords,
+			firstPracticeDate: studentRecords.length > 0 ? studentRecords[0].practiceDate : '-',
+			lastPracticeDate: studentRecords.length > 0 ? studentRecords[studentRecords.length - 1].practiceDate : '-',
+			trendData,
+			commonSuggestions
+		};
+	}).sort((a, b) => b.totalPractices - a.totalPractices);
+}
+
+export function getSuggestionUsage(): SuggestionUsage[] {
+	const records = getRecords();
+	const suggestions = getSuggestions();
+
+	return suggestions.map((s) => {
+		const usageByStudentMap = new Map<string, { count: number; recordIds: string[] }>();
+
+		records.forEach((r) => {
+			if (r.improvementSuggestion && r.improvementSuggestion.includes(s.content)) {
+				const existing = usageByStudentMap.get(r.studentName) || { count: 0, recordIds: [] };
+				usageByStudentMap.set(r.studentName, {
+					count: existing.count + 1,
+					recordIds: [...existing.recordIds, r.id]
+				});
+			}
+		});
+
+		const usageByStudent = [...usageByStudentMap.entries()]
+			.map(([studentName, data]) => ({
+				studentName,
+				count: data.count,
+				recordIds: data.recordIds
+			}))
+			.sort((a, b) => b.count - a.count);
+
+		const totalUsage = usageByStudent.reduce((sum, u) => sum + u.count, 0);
+
+		return {
+			suggestionId: s.id,
+			suggestionContent: s.content,
+			errorType: s.errorType,
+			usageByStudent,
+			totalUsage
+		};
+	}).sort((a, b) => b.totalUsage - a.totalUsage);
 }

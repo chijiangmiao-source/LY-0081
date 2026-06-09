@@ -24,6 +24,13 @@
 		}
 	}
 
+	function handleViewStudentArchive() {
+		if (record) {
+			open = false;
+			goto(`/students?student=${encodeURIComponent(record.studentName)}`);
+		}
+	}
+
 	function handleCopySuggestion() {
 		if (!record?.improvementSuggestion) return;
 		navigator.clipboard.writeText(record.improvementSuggestion).then(() => {
@@ -219,6 +226,15 @@
 					on:click={() => (open = false)}
 				>
 					关闭
+				</button>
+				<button
+					class="px-4 py-2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 cursor-pointer font-medium inline-flex items-center gap-2"
+					on:click={handleViewStudentArchive}
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+					</svg>
+					查看学员档案
 				</button>
 				<button
 					class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer font-medium inline-flex items-center gap-2"

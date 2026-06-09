@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import BaseModal from '$lib/components/BaseModal.svelte';
 	import RecordDetailModal from '$lib/components/RecordDetailModal.svelte';
 	import {
@@ -9,10 +10,11 @@
 		deleteSuggestion,
 		generateId,
 		getRecords,
-		updateRecord
+		updateRecord,
+		getSuggestionUsage
 	} from '$lib/storage';
 	import { ERROR_TYPES, AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
-	import type { Suggestion, ErrorType, PracticeRecord } from '$lib/types';
+	import type { Suggestion, ErrorType, PracticeRecord, SuggestionUsage } from '$lib/types';
 
 	let suggestions: Suggestion[] = [];
 	let allRecords: PracticeRecord[] = [];
@@ -28,6 +30,10 @@
 	let detailModalOpen = false;
 	let selectedRecord: PracticeRecord | null = null;
 
+	let usageModalOpen = false;
+	let selectedSuggestionUsage: SuggestionUsage | null = null;
+	let allSuggestionUsage: SuggestionUsage[] = [];
+
 	let form = {
 		errorType: ERROR_TYPES[0] as ErrorType,
 		content: ''
@@ -38,6 +44,7 @@
 	onMount(() => {
 		loadSuggestions();
 		loadRecords();
+		loadUsageData();
 	});
 
 	function loadSuggestions() {
@@ -46,6 +53,10 @@
 
 	function loadRecords() {
 		allRecords = getRecords().sort((a, b) => b.createdAt - a.createdAt);
+	}
+
+	function loadUsageData() {
+		allSuggestionUsage = getSuggestionUsage();
 	}
 
 	function openAdd() {
@@ -156,6 +167,27 @@
 		detailModalOpen = true;
 	}
 
+	function openUsageModal(s: Suggestion) {
+		const usage = allSuggestionUsage.find((u) => u.suggestionId === s.id);
+		if (usage) {
+			selectedSuggestionUsage = usage;
+		} else {
+			selectedSuggestionUsage = {
+				suggestionId: s.id,
+				suggestionContent: s.content,
+				errorType: s.errorType,
+				usageByStudent: [],
+				totalUsage: 0
+			};
+		}
+		usageModalOpen = true;
+	}
+
+	function goToStudentArchive(studentName: string) {
+		usageModalOpen = false;
+		goto(`/students?student=${encodeURIComponent(studentName)}`);
+	}
+
 	function getDeductBadgeClass(count: number): string {
 		if (count === 0) return 'bg-green-100 text-green-800 border border-green-300';
 		if (count <= 5) return 'bg-green-50 text-green-700 border border-green-200';
@@ -206,7 +238,13 @@
 								<div class="flex items-start gap-3 p-3 bg-gray-50 rounded border border-gray-100">
 									<span class="text-blue-600 font-bold min-w-[24px]">{index + 1}.</span>
 									<p class="flex-1 text-gray-800">{s.content}</p>
-									<div class="flex gap-2 shrink-0">
+								<div class="flex gap-2 shrink-0">
+										<button
+											class="px-3 py-1 text-sm rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 cursor-pointer"
+											on:click={() => openUsageModal(s)}
+										>
+											使用情况
+										</button>
 										<button
 											class="px-3 py-1 text-sm rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 cursor-pointer"
 											on:click={() => openApplyModal(s)}
@@ -260,6 +298,12 @@
 								</td>
 								<td class="p-3">
 									<div class="flex gap-2">
+										<button
+											class="px-3 py-1 text-sm rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 cursor-pointer"
+											on:click={() => openUsageModal(s)}
+										>
+											使用情况
+										</button>
 										<button
 											class="px-3 py-1 text-sm rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 cursor-pointer"
 											on:click={() => openApplyModal(s)}
@@ -426,9 +470,71 @@
 	</div>
 </BaseModal>
 
+<BaseModal bind:open={usageModalOpen} width="max-w-2xl">
+	<div class="p-5 text-gray-900">
+		<div class="flex items-start justify-between mb-4">
+			<div>
+				<h3 class="text-lg font-bold mb-2 text-gray-900">建议使用情况</h3>
+				{#if selectedSuggestionUsage}
+					<div class="flex items-center gap-2 mb-2">
+						<span class="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+							{selectedSuggestionUsage.errorType}
+						</span>
+						<span class="inline-block px-2 py-1 rounded text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+							总计使用 {selectedSuggestionUsage.totalUsage} 次
+						</span>
+					</div>
+					<p class="text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200">
+						{selectedSuggestionUsage.suggestionContent}
+					</p>
+				{/if}
+			</div>
+		</div>
+
+		{#if selectedSuggestionUsage}
+			{#if selectedSuggestionUsage.usageByStudent.length === 0}
+				<div class="py-8 text-center text-gray-500">
+					<p>暂无学员使用该建议</p>
+				</div>
+			{:else}
+				<div class="space-y-2 max-h-96 overflow-y-auto">
+					{#each selectedSuggestionUsage.usageByStudent as usage}
+						<div class="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200">
+							<div class="flex items-center gap-3">
+								<svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+								</svg>
+								<div>
+									<p class="font-medium text-gray-900">{usage.studentName}</p>
+									<p class="text-xs text-gray-500">使用 {usage.count} 次 · 涉及 {usage.recordIds.length} 条记录</p>
+								</div>
+							</div>
+							<button
+								class="px-3 py-1 text-sm rounded bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 cursor-pointer"
+								on:click={() => goToStudentArchive(usage.studentName)}
+							>
+								查看学员档案
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+
+		<div class="flex justify-end pt-4 mt-4 border-t border-gray-200">
+			<button
+				class="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100 cursor-pointer font-medium text-gray-700"
+				on:click={() => (usageModalOpen = false)}
+			>
+				关闭
+			</button>
+		</div>
+	</div>
+</BaseModal>
+
 <RecordDetailModal
 	bind:open={detailModalOpen}
 	bind:record={selectedRecord}
 	{suggestions}
 />
-<svelte:window on:storage={loadSuggestions} />
+<svelte:window on:storage={() => { loadSuggestions(); loadRecords(); loadUsageData(); }} />
