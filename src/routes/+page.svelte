@@ -115,9 +115,9 @@
 
 <div class="space-y-4">
 	<div class="flex items-center justify-between">
-		<h2 class="text-2xl font-bold">练习记录列表</h2>
+		<h2 class="text-2xl font-bold text-gray-900">练习记录列表</h2>
 		<button
-			class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 cursor-pointer font-medium"
+			class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer font-medium"
 			on:click={() => goto('/edit')}
 		>
 			<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,24 +127,24 @@
 		</button>
 	</div>
 
-	<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
+	<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
 		<div class="space-y-4">
-			<h3 class="font-semibold">筛选搜索</h3>
+			<h3 class="font-semibold text-gray-900">筛选搜索</h3>
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 				<div>
-					<label class="block text-sm font-medium mb-1">关键字搜索</label>
+					<label class="block text-sm font-medium mb-1 text-gray-700">关键字搜索</label>
 					<input
 						type="text"
 						bind:value={filters.searchText}
 						placeholder="搜索记录编号、学员、评语..."
-						class="w-full px-3 py-2 rounded border border-surface-300-700-token bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+						class="w-full px-3 py-2 rounded border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium mb-1">学员姓名</label>
+					<label class="block text-sm font-medium mb-1 text-gray-700">学员姓名</label>
 					<select
 						bind:value={filters.studentName}
-						class="w-full px-3 py-2 rounded border border-surface-300-700-token bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+						class="w-full px-3 py-2 rounded border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 					>
 						<option value="">全部学员</option>
 						{#each uniqueStudents as name}
@@ -153,10 +153,10 @@
 					</select>
 				</div>
 				<div>
-					<label class="block text-sm font-medium mb-1">训练项目</label>
+					<label class="block text-sm font-medium mb-1 text-gray-700">训练项目</label>
 					<select
 						bind:value={filters.trainingItem}
-						class="w-full px-3 py-2 rounded border border-surface-300-700-token bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+						class="w-full px-3 py-2 rounded border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 					>
 						<option value="">全部项目</option>
 						{#each TRAINING_ITEMS as item}
@@ -165,21 +165,21 @@
 					</select>
 				</div>
 				<div>
-					<label class="block text-sm font-medium mb-1">开始日期</label>
+					<label class="block text-sm font-medium mb-1 text-gray-700">开始日期</label>
 					<input
 						type="date"
 						bind:value={filters.startDate}
 						max={filters.endDate || undefined}
-						class="w-full px-3 py-2 rounded border {dateRangeError ? 'border-red-500' : 'border-surface-300-700-token'} bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+						class="w-full px-3 py-2 rounded border {dateRangeError ? 'border-red-500' : 'border-gray-300'} bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium mb-1">结束日期</label>
+					<label class="block text-sm font-medium mb-1 text-gray-700">结束日期</label>
 					<input
 						type="date"
 						bind:value={filters.endDate}
 						min={filters.startDate || undefined}
-						class="w-full px-3 py-2 rounded border {dateRangeError ? 'border-red-500' : 'border-surface-300-700-token'} bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+						class="w-full px-3 py-2 rounded border {dateRangeError ? 'border-red-500' : 'border-gray-300'} bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
 					{#if dateRangeError}
 						<p class="text-xs text-red-500 mt-1">{dateRangeError}</p>
@@ -188,13 +188,13 @@
 			</div>
 			<div class="flex gap-2">
 				<button
-					class="px-4 py-2 rounded border border-primary-500 text-primary-500 hover:bg-primary-50 cursor-pointer font-medium"
+					class="px-4 py-2 rounded border border-blue-500 text-blue-500 hover:bg-blue-50 cursor-pointer font-medium"
 					on:click={resetFilters}
 				>
 					重置筛选
 				</button>
 				<button
-					class="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600 cursor-pointer font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+					class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 					on:click={applyFilters}
 					disabled={!!dateRangeError}
 				>
@@ -204,30 +204,30 @@
 		</div>
 	</div>
 
-	<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
+	<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
 		{#if filteredRecords.length === 0}
-			<div class="text-center py-12 text-on-surface-variant-token">
+			<div class="text-center py-12 text-gray-500">
 				<p class="text-lg mb-2">暂无练习记录</p>
 				<p class="text-sm">点击右上角「新增练习」按钮添加第一条记录</p>
 			</div>
 		{:else}
 			<div class="overflow-x-auto">
-				<table class="w-full border-collapse text-sm">
+				<table class="w-full border-collapse text-sm text-gray-800">
 					<thead>
-						<tr class="border-b border-surface-300-700-token">
-							<th class="text-left p-3 font-semibold">记录编号</th>
-							<th class="text-left p-3 font-semibold">学员姓名</th>
-							<th class="text-left p-3 font-semibold">练习日期</th>
-							<th class="text-left p-3 font-semibold">训练项目</th>
-							<th class="text-left p-3 font-semibold">扣分次数</th>
-							<th class="text-left p-3 font-semibold">主要失误</th>
-							<th class="text-left p-3 font-semibold">补训</th>
-							<th class="text-left p-3 font-semibold">操作</th>
+						<tr class="border-b border-gray-200">
+							<th class="text-left p-3 font-semibold text-gray-900">记录编号</th>
+							<th class="text-left p-3 font-semibold text-gray-900">学员姓名</th>
+							<th class="text-left p-3 font-semibold text-gray-900">练习日期</th>
+							<th class="text-left p-3 font-semibold text-gray-900">训练项目</th>
+							<th class="text-left p-3 font-semibold text-gray-900">扣分次数</th>
+							<th class="text-left p-3 font-semibold text-gray-900">主要失误</th>
+							<th class="text-left p-3 font-semibold text-gray-900">补训</th>
+							<th class="text-left p-3 font-semibold text-gray-900">操作</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each filteredRecords as record}
-							<tr class="border-b border-surface-200-800-token hover:bg-surface-50-900-token cursor-pointer" on:click={() => openDetail(record)}>
+							<tr class="border-b border-gray-100 hover:bg-gray-50">
 								<td class="p-3 font-mono">{record.recordNo}</td>
 								<td class="p-3">{record.studentName}</td>
 								<td class="p-3">{record.practiceDate}</td>
@@ -245,7 +245,7 @@
 										<span class="inline-block px-2 py-1 rounded text-xs font-bold bg-green-50 text-green-700 border border-green-200">否</span>
 									{/if}
 								</td>
-								<td class="p-3" on:click|stopPropagation>
+								<td class="p-3">
 									<div class="flex gap-2">
 										<button
 											class="px-3 py-1 text-sm rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 cursor-pointer"
@@ -268,16 +268,16 @@
 									</div>
 								</td>
 							</tr>
-							<tr class="bg-surface-50-900-token cursor-pointer" on:click={() => openDetail(record)}>
+							<tr class="bg-gray-50">
 								<td colspan="8" class="p-3">
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 										<div>
-											<p class="text-sm font-semibold mb-1">教练评语：</p>
-											<p class="text-sm text-on-surface-variant-token">{record.coachComment || '-'}</p>
+											<p class="text-sm font-semibold mb-1 text-gray-900">教练评语：</p>
+											<p class="text-sm text-gray-600">{record.coachComment || '-'}</p>
 										</div>
 										<div>
-											<p class="text-sm font-semibold mb-1">改进建议：</p>
-											<p class="text-sm text-on-surface-variant-token">{record.improvementSuggestion || '-'}</p>
+											<p class="text-sm font-semibold mb-1 text-gray-900">改进建议：</p>
+											<p class="text-sm text-gray-600">{record.improvementSuggestion || '-'}</p>
 										</div>
 									</div>
 								</td>
@@ -285,7 +285,7 @@
 						{/each}
 					</tbody>
 				</table>
-				<p class="text-sm text-on-surface-variant-token mt-4">
+				<p class="text-sm text-gray-500 mt-4">
 					共 {filteredRecords.length} 条记录（总记录数：{records.length}）
 				</p>
 			</div>

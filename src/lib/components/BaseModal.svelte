@@ -10,7 +10,7 @@
 			on:click={() => (open = false)}
 		></div>
 		<div
-			class="relative bg-surface-100-900-token rounded-lg shadow-xl border border-surface-200-800-token w-full {width} max-h-[90vh] overflow-y-auto"
+			class="relative bg-white text-gray-900 rounded-lg shadow-xl border border-gray-200 w-full {width} max-h-[90vh] overflow-y-auto"
 			on:click|stopPropagation
 		>
 			<slot />

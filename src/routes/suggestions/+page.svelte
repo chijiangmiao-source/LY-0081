@@ -122,13 +122,29 @@
 		const record = allRecords.find((r) => r.id === selectedRecordId);
 		if (!record) return;
 
+		const existingSuggestions = record.improvementSuggestion?.trim() || '';
+		const newContent = applyingSuggestion.content.trim();
+
+		let finalSuggestion = existingSuggestions;
+		if (!existingSuggestions) {
+			finalSuggestion = newContent;
+		} else if (!existingSuggestions.includes(newContent)) {
+			finalSuggestion = `${existingSuggestions}\n\n• ${newContent}`;
+		} else {
+			applySuccessMsg = `该建议在记录 ${record.recordNo} 中已存在，无需重复添加`;
+			setTimeout(() => {
+				applySuccessMsg = '';
+			}, 3000);
+			return;
+		}
+
 		updateRecord({
 			...record,
-			improvementSuggestion: applyingSuggestion.content,
+			improvementSuggestion: finalSuggestion,
 			updatedAt: Date.now()
 		});
 
-		applySuccessMsg = `建议已成功应用到记录 ${record.recordNo}`;
+		applySuccessMsg = `建议已成功追加到记录 ${record.recordNo}`;
 		loadRecords();
 		setTimeout(() => {
 			applySuccessMsg = '';
@@ -154,9 +170,9 @@
 
 <div class="space-y-4">
 	<div class="flex items-center justify-between">
-		<h2 class="text-2xl font-bold">复盘建议维护</h2>
+		<h2 class="text-2xl font-bold text-gray-900">复盘建议维护</h2>
 		<button
-			class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded hover:bg-primary-600 cursor-pointer font-medium"
+			class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer font-medium"
 			on:click={openAdd}
 		>
 			<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,8 +183,8 @@
 	</div>
 
 	{#if suggestions.length === 0}
-		<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
-			<div class="text-center py-12 text-on-surface-variant-token">
+		<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+			<div class="text-center py-12 text-gray-500">
 				<p class="text-lg mb-2">暂无复盘建议</p>
 				<p class="text-sm">新增建议后，在录入练习记录时选择失误类型会自动填充建议</p>
 			</div>
@@ -178,18 +194,18 @@
 			{#each ERROR_TYPES as errorType}
 				{@const typeSuggestions = getSuggestionsByErrorType(errorType)}
 				{#if typeSuggestions.length > 0}
-					<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
-						<h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
+					<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+						<h3 class="font-semibold text-lg mb-4 flex items-center gap-2 text-gray-900">
 							<span class="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
 								{errorType}
 							</span>
-							<span class="text-sm text-on-surface-variant-token">({typeSuggestions.length} 条建议)</span>
+							<span class="text-sm text-gray-500">({typeSuggestions.length} 条建议)</span>
 						</h3>
 						<div class="space-y-2">
 							{#each typeSuggestions as s, index}
-								<div class="flex items-start gap-3 p-3 bg-surface-50-900-token rounded">
-									<span class="text-primary-500 font-bold min-w-[24px]">{index + 1}.</span>
-									<p class="flex-1">{s.content}</p>
+								<div class="flex items-start gap-3 p-3 bg-gray-50 rounded border border-gray-100">
+									<span class="text-blue-600 font-bold min-w-[24px]">{index + 1}.</span>
+									<p class="flex-1 text-gray-800">{s.content}</p>
 									<div class="flex gap-2 shrink-0">
 										<button
 											class="px-3 py-1 text-sm rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 cursor-pointer"
@@ -218,28 +234,28 @@
 			{/each}
 		</div>
 
-		<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
-			<h3 class="font-semibold text-lg mb-4">全部建议列表</h3>
+		<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+			<h3 class="font-semibold text-lg mb-4 text-gray-900">全部建议列表</h3>
 			<div class="overflow-x-auto">
-				<table class="w-full border-collapse text-sm">
+				<table class="w-full border-collapse text-sm text-gray-800">
 					<thead>
-						<tr class="border-b border-surface-300-700-token">
-							<th class="text-left p-3 font-semibold">失误类型</th>
-							<th class="text-left p-3 font-semibold">建议内容</th>
-							<th class="text-left p-3 font-semibold">创建时间</th>
-							<th class="text-left p-3 font-semibold">操作</th>
+						<tr class="border-b border-gray-200">
+							<th class="text-left p-3 font-semibold text-gray-900">失误类型</th>
+							<th class="text-left p-3 font-semibold text-gray-900">建议内容</th>
+							<th class="text-left p-3 font-semibold text-gray-900">创建时间</th>
+							<th class="text-left p-3 font-semibold text-gray-900">操作</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each suggestions as s}
-							<tr class="border-b border-surface-200-800-token">
+							<tr class="border-b border-gray-100 hover:bg-gray-50">
 								<td class="p-3">
 									<span class="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
 										{s.errorType}
 									</span>
 								</td>
 								<td class="p-3 max-w-md">{s.content}</td>
-								<td class="p-3 text-sm text-on-surface-variant-token">
+								<td class="p-3 text-sm text-gray-500">
 									{new Date(s.createdAt).toLocaleDateString('zh-CN')}
 								</td>
 								<td class="p-3">
@@ -274,14 +290,14 @@
 </div>
 
 <BaseModal bind:open={modalOpen} width="max-w-lg">
-	<div class="p-5">
-		<h3 class="text-lg font-bold mb-4">{editingSuggestion ? '编辑建议' : '新增建议'}</h3>
+	<div class="p-5 text-gray-900">
+		<h3 class="text-lg font-bold mb-4 text-gray-900">{editingSuggestion ? '编辑建议' : '新增建议'}</h3>
 		<div class="space-y-4">
 			<div>
-				<label class="block text-sm font-medium mb-1">失误类型</label>
+				<label class="block text-sm font-medium mb-1 text-gray-700">失误类型</label>
 				<select
 					bind:value={form.errorType}
-					class="w-full px-3 py-2 rounded border {errors.errorType ? 'border-red-500' : 'border-surface-300-700-token'} bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+					class="w-full px-3 py-2 rounded border {errors.errorType ? 'border-red-500' : 'border-gray-300'} bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 				>
 					{#each ERROR_TYPES as type}
 						<option value={type}>{type}</option>
@@ -292,12 +308,12 @@
 				{/if}
 			</div>
 			<div>
-				<label class="block text-sm font-medium mb-1">建议内容</label>
+				<label class="block text-sm font-medium mb-1 text-gray-700">建议内容</label>
 				<textarea
 					bind:value={form.content}
 					rows={4}
 					placeholder="针对该失误类型的改进建议..."
-					class="w-full px-3 py-2 rounded border {errors.content ? 'border-red-500' : 'border-surface-300-700-token'} bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+					class="w-full px-3 py-2 rounded border {errors.content ? 'border-red-500' : 'border-gray-300'} bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 				></textarea>
 				{#if errors.content}
 					<p class="text-xs text-red-500 mt-1">{errors.content}</p>
@@ -305,13 +321,13 @@
 			</div>
 			<div class="flex justify-end gap-2 pt-2">
 				<button
-					class="px-4 py-2 rounded border border-surface-300-700-token hover:bg-surface-200-800-token cursor-pointer font-medium"
+					class="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100 cursor-pointer font-medium text-gray-700"
 					on:click={() => (modalOpen = false)}
 				>
 					取消
 				</button>
 				<button
-					class="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600 cursor-pointer font-medium"
+					class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer font-medium"
 					on:click={handleSave}
 				>
 					{editingSuggestion ? '保存修改' : '创建建议'}
@@ -322,16 +338,16 @@
 </BaseModal>
 
 <BaseModal bind:open={applyModalOpen} width="max-w-2xl">
-	<div class="p-5">
-		<h3 class="text-lg font-bold mb-2">引用建议到练习记录</h3>
+	<div class="p-5 text-gray-900">
+		<h3 class="text-lg font-bold mb-2 text-gray-900">引用建议到练习记录（追加模式）</h3>
 		{#if applyingSuggestion}
-			<div class="mb-4 p-3 bg-surface-50-900-token rounded border border-surface-200-800-token">
+			<div class="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
 				<div class="flex items-center gap-2 mb-2">
 					<span class="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
 						{applyingSuggestion.errorType}
 					</span>
 				</div>
-				<p class="text-sm">{applyingSuggestion.content}</p>
+				<p class="text-sm text-gray-800">{applyingSuggestion.content}</p>
 			</div>
 		{/if}
 
@@ -342,40 +358,40 @@
 		{/if}
 
 		<div class="mb-3">
-			<p class="text-sm font-medium mb-2">
-				选择要应用建议的练习记录（同失误类型：
+			<p class="text-sm font-medium mb-2 text-gray-700">
+				选择要追加建议的练习记录（同失误类型：
 				{applyingSuggestion?.errorType || '-'}，共 {recordsByErrorType.length} 条）：
 			</p>
 		</div>
 
 		{#if recordsByErrorType.length === 0}
-			<div class="py-8 text-center text-on-surface-variant-token">
+			<div class="py-8 text-center text-gray-500">
 				<p>暂无该失误类型的练习记录</p>
 			</div>
 		{:else}
-			<div class="max-h-80 overflow-y-auto border border-surface-200-800-token rounded">
+			<div class="max-h-80 overflow-y-auto border border-gray-200 rounded">
 				<div class="space-y-1 p-2">
 					{#each recordsByErrorType as record}
 						<label
-							class="flex items-center gap-3 p-3 rounded hover:bg-surface-50-900-token cursor-pointer border {selectedRecordId === record.id ? 'border-primary-500 bg-primary-50' : 'border-transparent'}"
+							class="flex items-center gap-3 p-3 rounded hover:bg-gray-50 cursor-pointer border {selectedRecordId === record.id ? 'border-blue-500 bg-blue-50' : 'border-transparent'}"
 						>
 							<input
 								type="radio"
 								bind:group={selectedRecordId}
 								value={record.id}
-								class="w-4 h-4 cursor-pointer"
+								class="w-4 h-4 cursor-pointer text-blue-600"
 							/>
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 flex-wrap">
 									<span class="font-mono text-sm">{record.recordNo}</span>
-									<span class="text-sm font-medium">{record.studentName}</span>
-									<span class="text-sm text-on-surface-variant-token">{record.practiceDate}</span>
-									<span class="text-sm">{record.trainingItem}</span>
+									<span class="text-sm font-medium text-gray-900">{record.studentName}</span>
+									<span class="text-sm text-gray-500">{record.practiceDate}</span>
+									<span class="text-sm text-gray-800">{record.trainingItem}</span>
 									<span class="inline-block px-2 py-0.5 rounded text-xs font-bold {getDeductBadgeClass(record.deductCount)}">
 										{record.deductCount} 分
 									</span>
 								</div>
-								<p class="text-xs text-on-surface-variant-token mt-1 truncate">
+								<p class="text-xs text-gray-500 mt-1 truncate">
 									当前建议：{record.improvementSuggestion || '（无）'}
 								</p>
 							</div>
@@ -392,19 +408,19 @@
 			</div>
 		{/if}
 
-		<div class="flex justify-end gap-2 pt-4 mt-4 border-t border-surface-200-800-token">
+		<div class="flex justify-end gap-2 pt-4 mt-4 border-t border-gray-200">
 			<button
-				class="px-4 py-2 rounded border border-surface-300-700-token hover:bg-surface-200-800-token cursor-pointer font-medium"
+				class="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100 cursor-pointer font-medium text-gray-700"
 				on:click={() => (applyModalOpen = false)}
 			>
 				关闭
 			</button>
 			<button
-				class="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600 cursor-pointer font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+				class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 				on:click={applySuggestionToRecord}
 				disabled={!selectedRecordId}
 			>
-				应用建议
+				追加建议
 			</button>
 		</div>
 	</div>

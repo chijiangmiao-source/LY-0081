@@ -10,6 +10,7 @@
 	export let suggestions: Suggestion[] = [];
 
 	let copySuccess = false;
+	let applySuccessMsg = '';
 	let matchedSuggestions: Suggestion[] = [];
 
 	$: {
@@ -46,12 +47,32 @@
 
 	function handleApplySuggestion(suggestion: Suggestion) {
 		if (!record) return;
+		const existingSuggestions = record.improvementSuggestion?.trim() || '';
+		const newContent = suggestion.content.trim();
+
+		let finalSuggestion = existingSuggestions;
+		if (!existingSuggestions) {
+			finalSuggestion = newContent;
+		} else if (!existingSuggestions.includes(newContent)) {
+			finalSuggestion = `${existingSuggestions}\n\n• ${newContent}`;
+		} else {
+			applySuccessMsg = '该建议已存在，无需重复添加';
+			setTimeout(() => {
+				applySuccessMsg = '';
+			}, 2000);
+			return;
+		}
+
 		record = {
 			...record,
-			improvementSuggestion: suggestion.content,
+			improvementSuggestion: finalSuggestion,
 			updatedAt: Date.now()
 		};
 		updateRecord(record);
+		applySuccessMsg = '建议已追加到改进建议中';
+		setTimeout(() => {
+			applySuccessMsg = '';
+		}, 2000);
 	}
 
 	function getDeductBadgeClass(count: number): string {
@@ -64,16 +85,16 @@
 
 <BaseModal bind:open width="max-w-3xl">
 	{#if record}
-		<div class="p-6">
+		<div class="p-6 text-gray-900">
 			<div class="flex items-start justify-between mb-6">
 				<div>
-					<h3 class="text-xl font-bold">练习记录详情</h3>
-					<p class="text-sm text-on-surface-variant-token mt-1">
+					<h3 class="text-xl font-bold text-gray-900">练习记录详情</h3>
+					<p class="text-sm text-gray-500 mt-1">
 						记录编号：<span class="font-mono">{record.recordNo}</span>
 					</p>
 				</div>
 				<button
-					class="p-2 rounded-lg hover:bg-surface-200-800-token cursor-pointer text-on-surface-variant-token hover:text-on-surface-token transition-colors"
+					class="p-2 rounded-lg hover:bg-gray-100 cursor-pointer text-gray-500 hover:text-gray-700 transition-colors"
 					on:click={() => (open = false)}
 					aria-label="关闭"
 				>
@@ -84,20 +105,20 @@
 			</div>
 
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-				<div class="bg-surface-50-900-token rounded-lg p-3">
-					<p class="text-xs text-on-surface-variant-token mb-1">学员姓名</p>
-					<p class="font-semibold">{record.studentName}</p>
+				<div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+					<p class="text-xs text-gray-500 mb-1">学员姓名</p>
+					<p class="font-semibold text-gray-900">{record.studentName}</p>
 				</div>
-				<div class="bg-surface-50-900-token rounded-lg p-3">
-					<p class="text-xs text-on-surface-variant-token mb-1">练习日期</p>
-					<p class="font-semibold">{record.practiceDate}</p>
+				<div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+					<p class="text-xs text-gray-500 mb-1">练习日期</p>
+					<p class="font-semibold text-gray-900">{record.practiceDate}</p>
 				</div>
-				<div class="bg-surface-50-900-token rounded-lg p-3">
-					<p class="text-xs text-on-surface-variant-token mb-1">训练项目</p>
-					<p class="font-semibold">{record.trainingItem}</p>
+				<div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+					<p class="text-xs text-gray-500 mb-1">训练项目</p>
+					<p class="font-semibold text-gray-900">{record.trainingItem}</p>
 				</div>
-				<div class="bg-surface-50-900-token rounded-lg p-3">
-					<p class="text-xs text-on-surface-variant-token mb-1">扣分次数</p>
+				<div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+					<p class="text-xs text-gray-500 mb-1">扣分次数</p>
 					<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductBadgeClass(record.deductCount)}">
 						{record.deductCount} 分
 					</span>
@@ -105,14 +126,14 @@
 			</div>
 
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-				<div class="bg-surface-50-900-token rounded-lg p-3">
-					<p class="text-xs text-on-surface-variant-token mb-1">主要失误类型</p>
+				<div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+					<p class="text-xs text-gray-500 mb-1">主要失误类型</p>
 					<span class="inline-block px-3 py-1 rounded text-sm font-bold bg-blue-50 text-blue-700 border border-blue-200">
 						{record.mainErrorType}
 					</span>
 				</div>
-				<div class="bg-surface-50-900-token rounded-lg p-3">
-					<p class="text-xs text-on-surface-variant-token mb-1">补训状态</p>
+				<div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+					<p class="text-xs text-gray-500 mb-1">补训状态</p>
 					<div class="flex items-center gap-2">
 						{#if record.needRetraining}
 							<span class="inline-block px-3 py-1 rounded text-sm font-bold bg-orange-100 text-orange-800 border border-orange-300">需补训</span>
@@ -120,7 +141,7 @@
 							<span class="inline-block px-3 py-1 rounded text-sm font-bold bg-green-50 text-green-700 border border-green-200">无需补训</span>
 						{/if}
 						<button
-							class="px-3 py-1 text-sm rounded border border-surface-300-700-token hover:bg-surface-100-900-token cursor-pointer"
+							class="px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100 cursor-pointer text-gray-700"
 							on:click={handleToggleRetraining}
 						>
 							{record.needRetraining ? '标记已完成' : '标记需补训'}
@@ -130,15 +151,15 @@
 			</div>
 
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-				<div class="bg-surface-50-900-token rounded-lg p-4">
+				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<div class="flex items-center justify-between mb-2">
-						<p class="text-sm font-semibold">教练评语</p>
+						<p class="text-sm font-semibold text-gray-900">教练评语</p>
 					</div>
-					<p class="text-sm text-on-surface-token whitespace-pre-wrap leading-relaxed">{record.coachComment || '-'}</p>
+					<p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{record.coachComment || '-'}</p>
 				</div>
-				<div class="bg-surface-50-900-token rounded-lg p-4">
+				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<div class="flex items-center justify-between mb-2">
-						<p class="text-sm font-semibold">改进建议</p>
+						<p class="text-sm font-semibold text-gray-900">改进建议</p>
 						<button
 							class="px-3 py-1 text-sm rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 cursor-pointer flex items-center gap-1"
 							on:click={handleCopySuggestion}
@@ -157,29 +178,34 @@
 							{/if}
 						</button>
 					</div>
-					<p class="text-sm text-on-surface-token whitespace-pre-wrap leading-relaxed">{record.improvementSuggestion || '-'}</p>
+					<p class="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{record.improvementSuggestion || '-'}</p>
 				</div>
 			</div>
 
 			{#if matchedSuggestions.length > 0}
-				<div class="bg-surface-50-900-token rounded-lg p-4 mb-6">
+				<div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
 					<div class="flex items-center gap-2 mb-3">
-						<svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
-						<p class="text-sm font-semibold">该失误类型的相关建议</p>
-						<span class="text-xs text-on-surface-variant-token">（可快速应用到当前记录）</span>
+						<p class="text-sm font-semibold text-gray-900">该失误类型的相关建议</p>
+						<span class="text-xs text-gray-500">（可追加到改进建议中）</span>
 					</div>
+					{#if applySuccessMsg}
+						<div class="mb-3 p-2 px-3 py-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+							{applySuccessMsg}
+						</div>
+					{/if}
 					<div class="space-y-2">
 						{#each matchedSuggestions as s, index}
-							<div class="flex items-start gap-3 p-3 bg-surface-100-900-token rounded border border-surface-200-800-token">
-								<span class="text-primary-500 font-bold min-w-[24px]">{index + 1}.</span>
-								<p class="flex-1 text-sm">{s.content}</p>
+							<div class="flex items-start gap-3 p-3 bg-white rounded border border-gray-200">
+								<span class="text-blue-600 font-bold min-w-[24px]">{index + 1}.</span>
+								<p class="flex-1 text-sm text-gray-800">{s.content}</p>
 								<button
-									class="px-3 py-1 text-sm rounded bg-primary-500 text-white hover:bg-primary-600 cursor-pointer shrink-0"
+									class="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer shrink-0"
 									on:click={() => handleApplySuggestion(s)}
 								>
-									应用
+									追加
 								</button>
 							</div>
 						{/each}
@@ -187,15 +213,15 @@
 				</div>
 			{/if}
 
-			<div class="flex justify-end gap-2 pt-4 border-t border-surface-200-800-token">
+			<div class="flex justify-end gap-2 pt-4 border-t border-gray-200">
 				<button
-					class="px-4 py-2 rounded border border-surface-300-700-token hover:bg-surface-200-800-token cursor-pointer font-medium"
+					class="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100 cursor-pointer font-medium text-gray-700"
 					on:click={() => (open = false)}
 				>
 					关闭
 				</button>
 				<button
-					class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 cursor-pointer font-medium inline-flex items-center gap-2"
+					class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer font-medium inline-flex items-center gap-2"
 					on:click={handleEdit}
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
