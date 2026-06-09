@@ -17,9 +17,20 @@
 		endDate: ''
 	};
 
+	let dateRangeError = '';
+
 	onMount(() => {
 		loadRecords();
 	});
+
+	$: validateDateRange(filters.startDate, filters.endDate);
+
+	function validateDateRange(start: string, end: string) {
+		dateRangeError = '';
+		if (start && end && new Date(end) < new Date(start)) {
+			dateRangeError = '结束日期不能早于开始日期';
+		}
+	}
 
 	function loadRecords() {
 		records = getRecords().sort((a, b) => b.createdAt - a.createdAt);
@@ -136,7 +147,8 @@
 					<input
 						type="date"
 						bind:value={filters.startDate}
-						class="w-full px-3 py-2 rounded border border-surface-300-700-token bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+						max={filters.endDate || undefined}
+						class="w-full px-3 py-2 rounded border {dateRangeError ? 'border-red-500' : 'border-surface-300-700-token'} bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
 					/>
 				</div>
 				<div>
@@ -144,8 +156,12 @@
 					<input
 						type="date"
 						bind:value={filters.endDate}
-						class="w-full px-3 py-2 rounded border border-surface-300-700-token bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+						min={filters.startDate || undefined}
+						class="w-full px-3 py-2 rounded border {dateRangeError ? 'border-red-500' : 'border-surface-300-700-token'} bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
 					/>
+					{#if dateRangeError}
+						<p class="text-xs text-red-500 mt-1">{dateRangeError}</p>
+					{/if}
 				</div>
 			</div>
 			<div class="flex gap-2">
@@ -156,8 +172,9 @@
 					重置筛选
 				</button>
 				<button
-					class="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600 cursor-pointer font-medium"
+					class="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600 cursor-pointer font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 					on:click={applyFilters}
+					disabled={!!dateRangeError}
 				>
 					应用筛选
 				</button>

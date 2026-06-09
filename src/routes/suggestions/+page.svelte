@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Modal } from '@skeletonlabs/skeleton';
+	import BaseModal from '$lib/components/BaseModal.svelte';
 	import {
 		getSuggestions,
 		addSuggestion,
@@ -201,7 +201,7 @@
 	{/if}
 </div>
 
-<Modal bind:open={modalOpen} width="max-w-lg">
+<BaseModal bind:open={modalOpen} width="max-w-lg">
 	<div class="p-5">
 		<h3 class="text-lg font-bold mb-4">{editingSuggestion ? '编辑建议' : '新增建议'}</h3>
 		<div class="space-y-4">
@@ -247,4 +247,4 @@
 			</div>
 		</div>
 	</div>
-</Modal>
+</BaseModal>

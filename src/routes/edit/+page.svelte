@@ -67,6 +67,8 @@
 	$: {
 		if (form.deductCount > AUTO_RETRAIN_THRESHOLD) {
 			form.needRetraining = true;
+		} else if (form.deductCount <= AUTO_RETRAIN_THRESHOLD) {
+			form.needRetraining = false;
 		}
 	}
 
