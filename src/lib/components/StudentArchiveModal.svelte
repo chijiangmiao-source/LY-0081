@@ -3,11 +3,18 @@
 	import BaseModal from './BaseModal.svelte';
 	import ApexChart from './ApexChart.svelte';
 	import WarningDetailModal from './WarningDetailModal.svelte';
-	import {
-		AUTO_RETRAIN_THRESHOLD,
-		WARNING_LEVEL_LABELS
-	} from '$lib/constants';
+	import { WARNING_LEVEL_LABELS } from '$lib/constants';
 	import { getWarningsByStudent } from '$lib/storage';
+	import {
+		getWarningLevelBadgeClass,
+		getDeductBadgeClass,
+		getDeductTextClass,
+		computeArchiveImprovementTrend,
+		buildWarningsUrl,
+		buildHomeWithRecordUrl,
+		buildEditRecordUrl,
+		getScoreTextClass
+	} from '$lib/utils';
 	import type {
 		StudentArchive,
 		PracticeRecord,
@@ -31,19 +38,6 @@
 		}
 	}
 
-	function getWarningLevelBadgeClass(level: string): string {
-		switch (level) {
-			case 'stable':
-				return 'bg-green-100 text-green-800 border border-green-300';
-			case 'attention':
-				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-			case 'alert':
-				return 'bg-red-100 text-red-800 border border-red-300';
-			default:
-				return 'bg-gray-100 text-gray-800 border border-gray-300';
-		}
-	}
-
 	function getLatestWarning(): WarningRecord | null {
 		if (studentWarnings.length === 0) return null;
 		return studentWarnings[0];
@@ -56,17 +50,17 @@
 
 	function goToWarningCenter() {
 		open = false;
-		goto('/warnings');
+		goto(buildWarningsUrl());
 	}
 
 	function openRecordDetail(record: PracticeRecord) {
 		open = false;
-		goto(`/?recordId=${encodeURIComponent(record.id)}`);
+		goto(buildHomeWithRecordUrl(record.id));
 	}
 
 	function editRecord(id: string) {
 		open = false;
-		goto(`/edit?id=${id}`);
+		goto(buildEditRecordUrl(id));
 	}
 
 	$: trendChartOptions = archive
@@ -92,29 +86,7 @@
 			}
 		: {};
 
-	function getDeductBadgeClass(count: number): string {
-		if (count === 0) return 'bg-green-100 text-green-800 border border-green-300';
-		if (count <= 5) return 'bg-green-50 text-green-700 border border-green-200';
-		if (count <= AUTO_RETRAIN_THRESHOLD) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-		return 'bg-red-100 text-red-800 border border-red-300';
-	}
 
-	function getImprovementTrend(): { label: string; class: string } {
-		if (!archive || archive.trendData.length < 2) {
-			return { label: '数据不足', class: 'bg-gray-100 text-gray-600 border border-gray-300' };
-		}
-		const recent = archive.trendData.slice(-3);
-		const earlier = archive.trendData.slice(0, 3);
-		const recentAvg = recent.reduce((s, d) => s + d.avgDeduct, 0) / recent.length;
-		const earlierAvg = earlier.reduce((s, d) => s + d.avgDeduct, 0) / earlier.length;
-
-		if (recentAvg < earlierAvg - 2) {
-			return { label: '明显进步 ↓', class: 'bg-green-100 text-green-800 border border-green-300' };
-		} else if (recentAvg > earlierAvg + 2) {
-			return { label: '有所退步 ↑', class: 'bg-red-100 text-red-800 border border-red-300' };
-		}
-		return { label: '稳定 →', class: 'bg-yellow-100 text-yellow-800 border border-yellow-300' };
-	}
 </script>
 
 <BaseModal bind:open width="max-w-5xl">
@@ -128,8 +100,8 @@
 					</p>
 				</div>
 				<div class="flex items-center gap-2">
-					<span class="inline-block px-3 py-1 rounded text-sm font-bold {getImprovementTrend().class}">
-						{getImprovementTrend().label}
+					<span class="inline-block px-3 py-1 rounded text-sm font-bold {computeArchiveImprovementTrend(archive.trendData).class}">
+						{computeArchiveImprovementTrend(archive.trendData).label}
 					</span>
 					<button
 						class="p-2 rounded-lg hover:bg-gray-100 cursor-pointer text-gray-500 hover:text-gray-700 transition-colors"
@@ -222,7 +194,7 @@
 											{/if}
 										</td>
 										<td class="p-3">
-											<span class="font-bold {warning.score >= 70 ? 'text-green-600' : warning.score >= 40 ? 'text-yellow-600' : 'text-red-600'}">
+											<span class="font-bold {getScoreTextClass(warning.score)}">
 												{warning.score}
 											</span>
 										</td>
@@ -273,13 +245,13 @@
 				</div>
 				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<p class="text-xs text-gray-500 mb-1">总扣分</p>
-					<p class="text-2xl font-bold {getDeductBadgeClass(archive.avgDeduct).includes('red') ? 'text-red-600' : getDeductBadgeClass(archive.avgDeduct).includes('yellow') ? 'text-yellow-600' : 'text-green-600'}">
+					<p class="text-2xl font-bold {getDeductTextClass(archive.totalDeduct)}">
 						{archive.totalDeduct}
 					</p>
 				</div>
 				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<p class="text-xs text-gray-500 mb-1">平均扣分</p>
-					<p class="text-2xl font-bold {getDeductBadgeClass(archive.avgDeduct).includes('red') ? 'text-red-600' : getDeductBadgeClass(archive.avgDeduct).includes('yellow') ? 'text-yellow-600' : 'text-green-600'}">
+					<p class="text-2xl font-bold {getDeductTextClass(archive.avgDeduct)}">
 						{archive.avgDeduct}
 					</p>
 				</div>

@@ -3,7 +3,8 @@
 	import { goto } from '$app/navigation';
 	import ApexChart from '$lib/components/ApexChart.svelte';
 	import { getRecords, getWarningStats, getWarningsFiltered } from '$lib/storage';
-	import { TRAINING_ITEMS, ERROR_TYPES, AUTO_RETRAIN_THRESHOLD, WARNING_LEVEL_LABELS } from '$lib/constants';
+	import { TRAINING_ITEMS, ERROR_TYPES, WARNING_LEVEL_LABELS } from '$lib/constants';
+	import { getWarningLevelBadgeClass, getDeductBadgeClass, buildWarningsUrl } from '$lib/utils';
 	import type { PracticeRecord, WarningRecord } from '$lib/types';
 
 	let records: PracticeRecord[] = [];
@@ -135,36 +136,15 @@
 	}
 
 	function goToWarnings() {
-		goto('/warnings');
+		goto(buildWarningsUrl());
 	}
 
 	function goToWarningsLevel(level: string) {
-		goto(`/warnings?level=${level}`);
+		goto(buildWarningsUrl({ level: level as 'stable' | 'attention' | 'alert' }));
 	}
 
 	function goToStudentWarnings(studentName: string) {
-		goto(`/warnings?student=${encodeURIComponent(studentName)}`);
-	}
-
-	function getWarningLevelBadgeClass(level: string): string {
-		switch (level) {
-			case 'stable':
-				return 'bg-green-100 text-green-800 border border-green-300';
-			case 'attention':
-				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-			case 'alert':
-				return 'bg-red-100 text-red-800 border border-red-300';
-			default:
-				return 'bg-gray-100 text-gray-800 border border-gray-300';
-		}
-	}
-
-	function getDeductClass(deduct: number | string): string {
-		const d = typeof deduct === 'string' ? parseFloat(deduct) : deduct;
-		if (d === 0) return 'bg-green-100 text-green-800 border border-green-300';
-		if (d <= 5) return 'bg-green-50 text-green-700 border border-green-200';
-		if (d <= AUTO_RETRAIN_THRESHOLD) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-		return 'bg-red-100 text-red-800 border border-red-300';
+		goto(buildWarningsUrl({ student: studentName }));
 	}
 </script>
 
@@ -357,12 +337,12 @@
 								<td class="p-3 font-medium">{stat.item}</td>
 								<td class="p-3">{stat.count} 次</td>
 								<td class="p-3">
-									<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductClass(stat.totalDeduct)}">
+									<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductBadgeClass(stat.totalDeduct)}">
 										{stat.totalDeduct} 分
 									</span>
 								</td>
 								<td class="p-3">
-									<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductClass(parseFloat(stat.avgDeduct))}">
+									<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductBadgeClass(parseFloat(stat.avgDeduct))}">
 										{stat.avgDeduct} 分
 									</span>
 								</td>
@@ -402,12 +382,12 @@
 									<td class="p-3 font-medium">{stat.name}</td>
 									<td class="p-3">{stat.count} 次</td>
 									<td class="p-3">
-										<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductClass(stat.totalDeduct)}">
+										<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductBadgeClass(stat.totalDeduct)}">
 											{stat.totalDeduct} 分
 										</span>
 									</td>
 									<td class="p-3">
-										<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductClass(parseFloat(stat.avgDeduct))}">
+										<span class="inline-block px-2 py-1 rounded text-xs font-bold {getDeductBadgeClass(parseFloat(stat.avgDeduct))}">
 											{stat.avgDeduct} 分
 										</span>
 									</td>

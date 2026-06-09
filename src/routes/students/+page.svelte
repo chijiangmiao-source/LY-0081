@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { getStudentArchives, getSuggestions, getRecords } from '$lib/storage';
-	import { AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
+	import { getDeductBadgeClass, getDeductTextClass } from '$lib/utils';
 	import type { StudentArchive, Suggestion } from '$lib/types';
 	import StudentArchiveModal from '$lib/components/StudentArchiveModal.svelte';
 
@@ -89,20 +89,6 @@
 				selectedArchive = updated;
 			}
 		}
-	}
-
-	function getDeductBadgeClass(count: number): string {
-		if (count === 0) return 'bg-green-100 text-green-800 border border-green-300';
-		if (count <= 5) return 'bg-green-50 text-green-700 border border-green-200';
-		if (count <= AUTO_RETRAIN_THRESHOLD) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-		return 'bg-red-100 text-red-800 border border-red-300';
-	}
-
-	function getDeductTextClass(count: number): string {
-		if (count === 0) return 'text-green-600';
-		if (count <= 5) return 'text-green-600';
-		if (count <= AUTO_RETRAIN_THRESHOLD) return 'text-yellow-600';
-		return 'text-red-600';
 	}
 
 	function getTopErrors(archive: StudentArchive, limit = 3): string[] {

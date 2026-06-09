@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { STORAGE_KEYS, WARNING_THRESHOLDS } from './constants';
+import { scoreToLevel, computeTrendDirection } from './utils';
 import type {
 	PracticeRecord,
 	Suggestion,
@@ -259,28 +260,6 @@ export function getWarnings(): WarningRecord[] {
 export function saveWarnings(warnings: WarningRecord[]): void {
 	if (!browser) return;
 	localStorage.setItem(STORAGE_KEYS.WARNINGS, JSON.stringify(warnings));
-}
-
-function scoreToLevel(score: number): WarningLevel {
-	if (score >= WARNING_THRESHOLDS.SCORE_STABLE_MIN) return 'stable';
-	if (score >= WARNING_THRESHOLDS.SCORE_ATTENTION_MIN) return 'attention';
-	return 'alert';
-}
-
-function computeTrendDirection(
-	records: PracticeRecord[]
-): 'improving' | 'stable' | 'declining' | 'insufficient' {
-	if (records.length < WARNING_THRESHOLDS.PRACTICE_MIN_COUNT) return 'insufficient';
-	const sorted = [...records].sort((a, b) => (a.practiceDate > b.practiceDate ? 1 : -1));
-	const mid = Math.floor(sorted.length / 2);
-	const earlier = sorted.slice(0, mid);
-	const later = sorted.slice(mid);
-	const earlierAvg = earlier.reduce((s, r) => s + r.deductCount, 0) / earlier.length;
-	const laterAvg = later.reduce((s, r) => s + r.deductCount, 0) / later.length;
-	const delta = laterAvg - earlierAvg;
-	if (delta < -WARNING_THRESHOLDS.TREND_DECLINE_DELTA) return 'improving';
-	if (delta > WARNING_THRESHOLDS.TREND_DECLINE_DELTA) return 'declining';
-	return 'stable';
 }
 
 function buildTopErrorTypes(records: PracticeRecord[]): { type: ErrorType; count: number; rate: number }[] {

@@ -4,6 +4,14 @@
 	import WarningDetailModal from './WarningDetailModal.svelte';
 	import { updateRecord, getWarningsByStudent, getWarnings } from '$lib/storage';
 	import { AUTO_RETRAIN_THRESHOLD, WARNING_LEVEL_LABELS } from '$lib/constants';
+	import {
+		getWarningLevelBadgeClass,
+		getDeductBadgeClass,
+		appendSuggestion,
+		buildWarningsUrl,
+		buildStudentArchiveUrl,
+		buildEditRecordUrl
+	} from '$lib/utils';
 	import type { PracticeRecord, Suggestion, ErrorType, WarningRecord } from '$lib/types';
 
 	export let open = false;
@@ -42,26 +50,13 @@
 
 	function goToWarningCenter() {
 		open = false;
-		goto('/warnings');
+		goto(buildWarningsUrl());
 	}
 
 	function goToWarningCenterForStudent() {
 		open = false;
 		if (record) {
-			goto(`/warnings?student=${encodeURIComponent(record.studentName)}`);
-		}
-	}
-
-	function getWarningLevelBadgeClass(level: string): string {
-		switch (level) {
-			case 'stable':
-				return 'bg-green-100 text-green-800 border border-green-300';
-			case 'attention':
-				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-			case 'alert':
-				return 'bg-red-100 text-red-800 border border-red-300';
-			default:
-				return 'bg-gray-100 text-gray-800 border border-gray-300';
+			goto(buildWarningsUrl({ student: record.studentName }));
 		}
 	}
 
@@ -72,14 +67,14 @@
 	function handleEdit() {
 		if (record) {
 			open = false;
-			goto(`/edit?id=${record.id}`);
+			goto(buildEditRecordUrl(record.id));
 		}
 	}
 
 	function handleViewStudentArchive() {
 		if (record) {
 			open = false;
-			goto(`/students?student=${encodeURIComponent(record.studentName)}`);
+			goto(buildStudentArchiveUrl(record.studentName));
 		}
 	}
 
@@ -106,15 +101,9 @@
 
 	function handleApplySuggestion(suggestion: Suggestion) {
 		if (!record) return;
-		const existingSuggestions = record.improvementSuggestion?.trim() || '';
-		const newContent = suggestion.content.trim();
 
-		let finalSuggestion = existingSuggestions;
-		if (!existingSuggestions) {
-			finalSuggestion = newContent;
-		} else if (!existingSuggestions.includes(newContent)) {
-			finalSuggestion = `${existingSuggestions}\n\n• ${newContent}`;
-		} else {
+		const result = appendSuggestion(record.improvementSuggestion || '', suggestion.content);
+		if (result.isDuplicate) {
 			applySuccessMsg = '该建议已存在，无需重复添加';
 			setTimeout(() => {
 				applySuccessMsg = '';
@@ -124,7 +113,7 @@
 
 		record = {
 			...record,
-			improvementSuggestion: finalSuggestion,
+			improvementSuggestion: result.finalSuggestion,
 			updatedAt: Date.now()
 		};
 		updateRecord(record);
@@ -132,13 +121,6 @@
 		setTimeout(() => {
 			applySuccessMsg = '';
 		}, 2000);
-	}
-
-	function getDeductBadgeClass(count: number): string {
-		if (count === 0) return 'bg-green-100 text-green-800 border border-green-300';
-		if (count <= 5) return 'bg-green-50 text-green-700 border border-green-200';
-		if (count <= AUTO_RETRAIN_THRESHOLD) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-		return 'bg-red-100 text-red-800 border border-red-300';
 	}
 </script>
 

@@ -16,7 +16,14 @@
 		getWarningsFiltered,
 		getWarningsBySuggestion
 	} from '$lib/storage';
-	import { ERROR_TYPES, AUTO_RETRAIN_THRESHOLD, WARNING_LEVEL_LABELS } from '$lib/constants';
+	import { ERROR_TYPES, WARNING_LEVEL_LABELS } from '$lib/constants';
+	import {
+		getWarningLevelBadgeClass,
+		getDeductBadgeClass,
+		appendSuggestion,
+		buildWarningsUrl,
+		buildStudentArchiveUrl
+	} from '$lib/utils';
 	import type { Suggestion, ErrorType, PracticeRecord, SuggestionUsage, WarningRecord } from '$lib/types';
 
 	let suggestions: Suggestion[] = [];
@@ -155,15 +162,8 @@
 		const record = allRecords.find((r) => r.id === selectedRecordId);
 		if (!record) return;
 
-		const existingSuggestions = record.improvementSuggestion?.trim() || '';
-		const newContent = applyingSuggestion.content.trim();
-
-		let finalSuggestion = existingSuggestions;
-		if (!existingSuggestions) {
-			finalSuggestion = newContent;
-		} else if (!existingSuggestions.includes(newContent)) {
-			finalSuggestion = `${existingSuggestions}\n\n• ${newContent}`;
-		} else {
+		const result = appendSuggestion(record.improvementSuggestion || '', applyingSuggestion.content);
+		if (result.isDuplicate) {
 			applySuccessMsg = `该建议在记录 ${record.recordNo} 中已存在，无需重复添加`;
 			setTimeout(() => {
 				applySuccessMsg = '';
@@ -173,7 +173,7 @@
 
 		updateRecord({
 			...record,
-			improvementSuggestion: finalSuggestion,
+			improvementSuggestion: result.finalSuggestion,
 			updatedAt: Date.now()
 		});
 
@@ -213,7 +213,7 @@
 
 	function goToWarningsForStudent(studentName: string) {
 		usageModalOpen = false;
-		goto(`/warnings?student=${encodeURIComponent(studentName)}`);
+		goto(buildWarningsUrl({ student: studentName }));
 	}
 
 	function getStudentWarningLevel(studentName: string): WarningRecord | null {
@@ -224,19 +224,6 @@
 		const attentions = warnings.filter((w) => w.level === 'attention');
 		if (attentions.length > 0) return attentions[0];
 		return warnings[0];
-	}
-
-	function getWarningLevelBadgeClass(level: string): string {
-		switch (level) {
-			case 'stable':
-				return 'bg-green-100 text-green-800 border border-green-300';
-			case 'attention':
-				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-			case 'alert':
-				return 'bg-red-100 text-red-800 border border-red-300';
-			default:
-				return 'bg-gray-100 text-gray-800 border border-gray-300';
-		}
 	}
 
 	function getWarningStudentsUsingThis(): { studentName: string; count: number; warning: WarningRecord }[] {
@@ -259,14 +246,7 @@
 
 	function goToStudentArchive(studentName: string) {
 		usageModalOpen = false;
-		goto(`/students?student=${encodeURIComponent(studentName)}`);
-	}
-
-	function getDeductBadgeClass(count: number): string {
-		if (count === 0) return 'bg-green-100 text-green-800 border border-green-300';
-		if (count <= 5) return 'bg-green-50 text-green-700 border border-green-200';
-		if (count <= AUTO_RETRAIN_THRESHOLD) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-		return 'bg-red-100 text-red-800 border border-red-300';
+		goto(buildStudentArchiveUrl(studentName));
 	}
 </script>
 

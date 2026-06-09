@@ -14,6 +14,7 @@
 		WARNING_LEVEL_LABELS,
 		WARNING_SCOPE_LABELS
 	} from '$lib/constants';
+	import { getWarningLevelBadgeClass, getScoreTextClass, buildStudentArchiveUrl } from '$lib/utils';
 	import type { WarningRecord, WarningLevel, WarningScope, TrainingItem } from '$lib/types';
 	import WarningDetailModal from '$lib/components/WarningDetailModal.svelte';
 
@@ -158,20 +159,7 @@
 
 	function goToStudentArchive(studentName: string) {
 		detailModalOpen = false;
-		goto(`/students?student=${encodeURIComponent(studentName)}`);
-	}
-
-	function getLevelBadgeClass(level: string): string {
-		switch (level) {
-			case 'stable':
-				return 'bg-green-100 text-green-800 border border-green-300';
-			case 'attention':
-				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-			case 'alert':
-				return 'bg-red-100 text-red-800 border border-red-300';
-			default:
-				return 'bg-gray-100 text-gray-800 border border-gray-300';
-		}
+		goto(buildStudentArchiveUrl(studentName));
 	}
 
 	function getScopeBadgeClass(scope: string): string {
@@ -369,7 +357,7 @@
 									{/if}
 								</td>
 								<td class="p-3">
-									<span class="inline-block px-3 py-1 rounded text-xs font-bold {getLevelBadgeClass(warning.level)}">
+									<span class="inline-block px-3 py-1 rounded text-xs font-bold {getWarningLevelBadgeClass(warning.level)}">
 										{WARNING_LEVEL_LABELS[warning.level]}
 									</span>
 								</td>
@@ -383,7 +371,7 @@
 								</td>
 								<td class="p-3">{warning.trainingItem || '-'}</td>
 								<td class="p-3">
-									<span class="font-bold {warning.score >= 70 ? 'text-green-600' : warning.score >= 40 ? 'text-yellow-600' : 'text-red-600'}">
+									<span class="font-bold {getScoreTextClass(warning.score)}">
 										{warning.score}
 									</span>
 								</td>

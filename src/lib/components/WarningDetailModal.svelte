@@ -4,10 +4,23 @@
 	import ApexChart from './ApexChart.svelte';
 	import {
 		WARNING_LEVEL_LABELS,
-		WARNING_SCOPE_LABELS,
-		AUTO_RETRAIN_THRESHOLD
+		WARNING_SCOPE_LABELS
 	} from '$lib/constants';
 	import { acknowledgeWarning, getRecords } from '$lib/storage';
+	import {
+		getWarningLevelBadgeClass,
+		getTrendDirectionClass,
+		getTrendDirectionLabel,
+		getPriorityClass,
+		getPriorityLabel,
+		getDeductBadgeClass,
+		getWarningLevelTextClass,
+		getAvgDeductTextClass,
+		getRetrainRateTextClass,
+		buildStudentArchiveUrl,
+		buildStatsUrl,
+		buildHomeWithRecordUrl
+	} from '$lib/utils';
 	import type { WarningRecord, PracticeRecord } from '$lib/types';
 
 	export let open = false;
@@ -24,66 +37,7 @@
 		}
 	}
 
-	function getLevelBadgeClass(level: string): string {
-		switch (level) {
-			case 'stable':
-				return 'bg-green-100 text-green-800 border border-green-300';
-			case 'attention':
-				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-			case 'alert':
-				return 'bg-red-100 text-red-800 border border-red-300';
-			default:
-				return 'bg-gray-100 text-gray-800 border border-gray-300';
-		}
-	}
 
-	function getTrendDirectionClass(dir: string): string {
-		switch (dir) {
-			case 'improving':
-				return 'text-green-600';
-			case 'declining':
-				return 'text-red-600';
-			case 'stable':
-				return 'text-blue-600';
-			default:
-				return 'text-gray-500';
-		}
-	}
-
-	function getTrendDirectionLabel(dir: string): string {
-		switch (dir) {
-			case 'improving':
-				return '上升趋势 ↑';
-			case 'declining':
-				return '下降趋势 ↓';
-			case 'stable':
-				return '保持稳定 →';
-			default:
-				return '数据不足';
-		}
-	}
-
-	function getPriorityClass(priority: string): string {
-		switch (priority) {
-			case 'high':
-				return 'bg-red-50 text-red-700 border border-red-200';
-			case 'medium':
-				return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
-			default:
-				return 'bg-blue-50 text-blue-700 border border-blue-200';
-		}
-	}
-
-	function getPriorityLabel(priority: string): string {
-		switch (priority) {
-			case 'high':
-				return '高优先级';
-			case 'medium':
-				return '中优先级';
-			default:
-				return '低优先级';
-		}
-	}
 
 	$: trendChartOptions = warning && warning.trendHistory.length > 0
 		? {
@@ -118,24 +72,17 @@
 	function goToStudentArchive() {
 		if (!warning) return;
 		open = false;
-		goto(`/students?student=${encodeURIComponent(warning.studentName)}`);
+		goto(buildStudentArchiveUrl(warning.studentName));
 	}
 
 	function goToStats() {
 		open = false;
-		goto('/stats');
+		goto(buildStatsUrl());
 	}
 
 	function openRecordDetail(record: PracticeRecord) {
 		open = false;
-		goto(`/?recordId=${encodeURIComponent(record.id)}`);
-	}
-
-	function getDeductBadgeClass(count: number): string {
-		if (count === 0) return 'bg-green-100 text-green-800 border border-green-300';
-		if (count <= 5) return 'bg-green-50 text-green-700 border border-green-200';
-		if (count <= AUTO_RETRAIN_THRESHOLD) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-		return 'bg-red-100 text-red-800 border border-red-300';
+		goto(buildHomeWithRecordUrl(record.id));
 	}
 </script>
 
@@ -148,7 +95,7 @@
 						<h3 class="text-xl font-bold text-gray-900">
 							{warning.scope === 'student' ? '学员' : '项目'}阶段测评报告
 						</h3>
-						<span class="inline-block px-3 py-1 rounded text-sm font-bold {getLevelBadgeClass(warning.level)}">
+						<span class="inline-block px-3 py-1 rounded text-sm font-bold {getWarningLevelBadgeClass(warning.level)}">
 							{WARNING_LEVEL_LABELS[warning.level]}
 						</span>
 						{#if warning.acknowledged}
@@ -179,7 +126,7 @@
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
 				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<p class="text-xs text-gray-500 mb-1">综合评分</p>
-					<p class="text-2xl font-bold {getLevelBadgeClass(warning.level).includes('red') ? 'text-red-600' : getLevelBadgeClass(warning.level).includes('yellow') ? 'text-yellow-600' : 'text-green-600'}">
+					<p class="text-2xl font-bold {getWarningLevelTextClass(warning.level)}">
 						{warning.score} 分
 					</p>
 				</div>
@@ -189,13 +136,13 @@
 				</div>
 				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<p class="text-xs text-gray-500 mb-1">平均扣分</p>
-					<p class="text-2xl font-bold {warning.avgDeduct >= 8 ? 'text-red-600' : warning.avgDeduct >= 5 ? 'text-yellow-600' : 'text-green-600'}">
+					<p class="text-2xl font-bold {getAvgDeductTextClass(warning.avgDeduct)}">
 						{warning.avgDeduct}
 					</p>
 				</div>
 				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<p class="text-xs text-gray-500 mb-1">补训率</p>
-					<p class="text-2xl font-bold {warning.retrainRate >= 0.4 ? 'text-red-600' : warning.retrainRate >= 0.2 ? 'text-yellow-600' : 'text-green-600'}">
+					<p class="text-2xl font-bold {getRetrainRateTextClass(warning.retrainRate)}">
 						{(warning.retrainRate * 100).toFixed(0)}%
 					</p>
 				</div>
