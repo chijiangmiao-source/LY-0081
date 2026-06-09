@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import BaseModal from './BaseModal.svelte';
-	import { updateRecord } from '$lib/storage';
-	import { AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
-	import type { PracticeRecord, Suggestion, ErrorType } from '$lib/types';
+	import WarningDetailModal from './WarningDetailModal.svelte';
+	import { updateRecord, getWarningsByStudent, getWarnings } from '$lib/storage';
+	import { AUTO_RETRAIN_THRESHOLD, WARNING_LEVEL_LABELS } from '$lib/constants';
+	import type { PracticeRecord, Suggestion, ErrorType, WarningRecord } from '$lib/types';
 
 	export let open = false;
 	export let record: PracticeRecord | null = null;
@@ -12,6 +13,57 @@
 	let copySuccess = false;
 	let applySuccessMsg = '';
 	let matchedSuggestions: Suggestion[] = [];
+
+	let studentWarnings: WarningRecord[] = [];
+	let relatedWarnings: WarningRecord[] = [];
+	let warningDetailOpen = false;
+	let selectedWarning: WarningRecord | null = null;
+
+	$: {
+		if (record) {
+			studentWarnings = getWarningsByStudent(record.studentName);
+			const allWarnings = getWarnings();
+			relatedWarnings = allWarnings.filter((w) => w.recordIds.includes(record!.id));
+		} else {
+			studentWarnings = [];
+			relatedWarnings = [];
+		}
+	}
+
+	function getLatestWarning(): WarningRecord | null {
+		if (studentWarnings.length === 0) return null;
+		return studentWarnings[0];
+	}
+
+	function openWarningDetail(warning: WarningRecord) {
+		selectedWarning = warning;
+		warningDetailOpen = true;
+	}
+
+	function goToWarningCenter() {
+		open = false;
+		goto('/warnings');
+	}
+
+	function goToWarningCenterForStudent() {
+		open = false;
+		if (record) {
+			goto(`/warnings?student=${encodeURIComponent(record.studentName)}`);
+		}
+	}
+
+	function getWarningLevelBadgeClass(level: string): string {
+		switch (level) {
+			case 'stable':
+				return 'bg-green-100 text-green-800 border border-green-300';
+			case 'attention':
+				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
+			case 'alert':
+				return 'bg-red-100 text-red-800 border border-red-300';
+			default:
+				return 'bg-gray-100 text-gray-800 border border-gray-300';
+		}
+	}
 
 	$: {
 		matchedSuggestions = record ? suggestions.filter((s) => s.errorType === record!.mainErrorType) : [];
@@ -157,6 +209,79 @@
 				</div>
 			</div>
 
+			{#if getLatestWarning() || relatedWarnings.length > 0}
+				<div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-200 mb-6">
+					<div class="flex items-start justify-between flex-wrap gap-3">
+						<div class="flex items-center gap-3">
+							<svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+							</svg>
+							<div>
+								<p class="text-sm font-semibold text-gray-700">阶段测评预警</p>
+								{#if getLatestWarning()}
+									<div class="flex items-center gap-2 mt-1 flex-wrap">
+										<span class="inline-block px-2 py-0.5 rounded text-xs font-bold {getWarningLevelBadgeClass(getLatestWarning()!.level)}">
+											{WARNING_LEVEL_LABELS[getLatestWarning()!.level]}
+										</span>
+										<span class="text-sm text-gray-600">
+											综合评分 {getLatestWarning()!.score} 分
+										</span>
+										<span class="text-xs text-gray-500">
+											{getLatestWarning()!.periodStart} ~ {getLatestWarning()!.periodEnd}
+										</span>
+									</div>
+								{/if}
+								{#if relatedWarnings.length > 0}
+									<p class="text-xs text-indigo-600 mt-1">
+										该记录关联 {relatedWarnings.length} 条阶段测评
+									</p>
+								{/if}
+							</div>
+						</div>
+						<div class="flex gap-2 flex-wrap">
+							{#if getLatestWarning()}
+								<button
+									class="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer font-medium inline-flex items-center gap-1"
+									on:click={() => openWarningDetail(getLatestWarning()!)}
+								>
+									查看最新测评
+								</button>
+							{/if}
+							<button
+								class="px-3 py-1.5 text-sm rounded bg-white text-indigo-700 border border-indigo-300 hover:bg-indigo-50 cursor-pointer font-medium"
+								on:click={goToWarningCenterForStudent}
+							>
+								该学员全部预警
+							</button>
+						</div>
+					</div>
+					{#if relatedWarnings.length > 0}
+						<div class="mt-3 pt-3 border-t border-indigo-200">
+							<p class="text-xs font-medium text-gray-600 mb-2">关联的阶段测评：</p>
+							<div class="flex flex-wrap gap-2">
+								{#each relatedWarnings as rw}
+									<button
+										class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer"
+										on:click={() => openWarningDetail(rw)}
+									>
+										<span class="font-bold {getWarningLevelBadgeClass(rw.level)} px-1.5 py-0.5 rounded">
+											{WARNING_LEVEL_LABELS[rw.level]}
+										</span>
+										{#if rw.trainingItem}
+											<span class="text-gray-600">{rw.trainingItem}</span>
+										{:else}
+											<span class="text-gray-600">学员综合</span>
+										{/if}
+										<span class="text-gray-400">·</span>
+										<span class="text-gray-500">{rw.periodStart}</span>
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
 				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
 					<div class="flex items-center justify-between mb-2">
@@ -249,3 +374,8 @@
 		</div>
 	{/if}
 </BaseModal>
+
+<WarningDetailModal
+	bind:open={warningDetailOpen}
+	bind:warning={selectedWarning}
+/>

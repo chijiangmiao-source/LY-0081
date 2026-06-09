@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import ApexChart from '$lib/components/ApexChart.svelte';
-	import { getRecords } from '$lib/storage';
-	import { TRAINING_ITEMS, ERROR_TYPES, AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
-	import type { PracticeRecord } from '$lib/types';
+	import { getRecords, getWarningStats, getWarningsFiltered } from '$lib/storage';
+	import { TRAINING_ITEMS, ERROR_TYPES, AUTO_RETRAIN_THRESHOLD, WARNING_LEVEL_LABELS } from '$lib/constants';
+	import type { PracticeRecord, WarningRecord } from '$lib/types';
 
 	let records: PracticeRecord[] = [];
 	let selectedStudent = '';
 	let uniqueStudents: string[] = [];
+	let warningStats = { total: 0, stable: 0, attention: 0, alert: 0 };
+	let alertWarnings: WarningRecord[] = [];
+	let attentionWarnings: WarningRecord[] = [];
 
 	$: filteredRecords = selectedStudent
 		? records.filter((r) => r.studentName === selectedStudent)
@@ -121,7 +125,39 @@
 	onMount(() => {
 		records = getRecords().sort((a, b) => (a.practiceDate > b.practiceDate ? 1 : -1));
 		uniqueStudents = [...new Set(records.map((r) => r.studentName))];
+		loadWarningData();
 	});
+
+	function loadWarningData() {
+		warningStats = getWarningStats();
+		alertWarnings = getWarningsFiltered({ level: 'alert' }).slice(0, 5);
+		attentionWarnings = getWarningsFiltered({ level: 'attention' }).slice(0, 5);
+	}
+
+	function goToWarnings() {
+		goto('/warnings');
+	}
+
+	function goToWarningsLevel(level: string) {
+		goto(`/warnings?level=${level}`);
+	}
+
+	function goToStudentWarnings(studentName: string) {
+		goto(`/warnings?student=${encodeURIComponent(studentName)}`);
+	}
+
+	function getWarningLevelBadgeClass(level: string): string {
+		switch (level) {
+			case 'stable':
+				return 'bg-green-100 text-green-800 border border-green-300';
+			case 'attention':
+				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
+			case 'alert':
+				return 'bg-red-100 text-red-800 border border-red-300';
+			default:
+				return 'bg-gray-100 text-gray-800 border border-gray-300';
+		}
+	}
 
 	function getDeductClass(deduct: number | string): string {
 		const d = typeof deduct === 'string' ? parseFloat(deduct) : deduct;
@@ -137,13 +173,24 @@
 </svelte:head>
 
 <div class="space-y-4">
-	<div class="flex items-center justify-between">
-		<h2 class="text-2xl font-bold">统计分析</h2>
+	<div class="flex items-center justify-between flex-wrap gap-3">
+		<div class="flex items-center gap-3">
+			<h2 class="text-2xl font-bold text-gray-900">统计分析</h2>
+			<button
+				class="px-3 py-1.5 text-sm rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 cursor-pointer font-medium inline-flex items-center gap-1"
+				on:click={goToWarnings}
+			>
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+				</svg>
+				阶段测评与预警中心
+			</button>
+		</div>
 		<div class="w-64">
-			<label class="block text-sm font-medium mb-1">学员维度查看</label>
+			<label class="block text-sm font-medium mb-1 text-gray-700">学员维度查看</label>
 			<select
 				bind:value={selectedStudent}
-				class="w-full px-3 py-2 rounded border border-surface-300-700-token bg-surface-50-900-token focus:outline-none focus:ring-2 focus:ring-primary-500"
+				class="w-full px-3 py-2 rounded border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 			>
 				<option value="">全部学员</option>
 				{#each uniqueStudents as name}
@@ -153,50 +200,160 @@
 		</div>
 	</div>
 
+	{#if warningStats.total > 0}
+		<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="font-semibold text-lg text-gray-900">阶段测评预警概览</h3>
+				<button
+					class="px-3 py-1 text-sm text-purple-600 hover:text-purple-800 cursor-pointer font-medium"
+					on:click={goToWarnings}
+				>
+					查看全部 →
+				</button>
+			</div>
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+				<div
+					class="bg-gray-50 rounded-lg p-4 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+					on:click={goToWarnings}
+				>
+					<p class="text-xs text-gray-500 mb-1">预警总数</p>
+					<p class="text-2xl font-bold text-gray-900">{warningStats.total}</p>
+				</div>
+				<div
+					class="bg-green-50 rounded-lg p-4 border border-green-200 cursor-pointer hover:bg-green-100 transition-colors"
+					on:click={() => goToWarningsLevel('stable')}
+				>
+					<p class="text-xs text-gray-500 mb-1">稳定</p>
+					<p class="text-2xl font-bold text-green-600">{warningStats.stable}</p>
+				</div>
+				<div
+					class="bg-yellow-50 rounded-lg p-4 border border-yellow-200 cursor-pointer hover:bg-yellow-100 transition-colors"
+					on:click={() => goToWarningsLevel('attention')}
+				>
+					<p class="text-xs text-gray-500 mb-1">需关注</p>
+					<p class="text-2xl font-bold text-yellow-600">{warningStats.attention}</p>
+				</div>
+				<div
+					class="bg-red-50 rounded-lg p-4 border border-red-200 cursor-pointer hover:bg-red-100 transition-colors"
+					on:click={() => goToWarningsLevel('alert')}
+				>
+					<p class="text-xs text-gray-500 mb-1">重点预警</p>
+					<p class="text-2xl font-bold text-red-600">{warningStats.alert}</p>
+				</div>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{#if alertWarnings.length > 0}
+					<div class="bg-red-50 rounded-lg p-4 border border-red-100">
+						<h4 class="font-semibold text-red-800 mb-3 flex items-center gap-2">
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+							</svg>
+							重点预警学员 TOP 5
+						</h4>
+						<div class="space-y-2">
+							{#each alertWarnings as w}
+								<div
+									class="flex items-center justify-between p-2 bg-white rounded border border-red-100 cursor-pointer hover:bg-red-50"
+									on:click={() => goToStudentWarnings(w.studentName)}
+								>
+									<div class="flex items-center gap-2">
+										<span class="font-medium text-gray-900">{w.studentName}</span>
+										{#if w.trainingItem}
+											<span class="text-xs text-gray-500">· {w.trainingItem}</span>
+										{/if}
+									</div>
+									<div class="flex items-center gap-2">
+										<span class="text-sm font-bold text-red-600">{w.score}分</span>
+										<span class="inline-block px-2 py-0.5 rounded text-xs font-bold {getWarningLevelBadgeClass(w.level)}">
+											{WARNING_LEVEL_LABELS[w.level]}
+										</span>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				{#if attentionWarnings.length > 0}
+					<div class="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
+						<h4 class="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+							需关注学员 TOP 5
+						</h4>
+						<div class="space-y-2">
+							{#each attentionWarnings as w}
+								<div
+									class="flex items-center justify-between p-2 bg-white rounded border border-yellow-100 cursor-pointer hover:bg-yellow-50"
+									on:click={() => goToStudentWarnings(w.studentName)}
+								>
+									<div class="flex items-center gap-2">
+										<span class="font-medium text-gray-900">{w.studentName}</span>
+										{#if w.trainingItem}
+											<span class="text-xs text-gray-500">· {w.trainingItem}</span>
+										{/if}
+									</div>
+									<div class="flex items-center gap-2">
+										<span class="text-sm font-bold text-yellow-600">{w.score}分</span>
+										<span class="inline-block px-2 py-0.5 rounded text-xs font-bold {getWarningLevelBadgeClass(w.level)}">
+											{WARNING_LEVEL_LABELS[w.level]}
+										</span>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
 	{#if records.length === 0}
-		<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
-			<div class="text-center py-12 text-on-surface-variant-token">
+		<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+			<div class="text-center py-12 text-gray-500">
 				<p class="text-lg">暂无数据，请先添加练习记录</p>
 			</div>
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
+			<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
 				<ApexChart options={itemChartOptions} />
 			</div>
-			<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
+			<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
 				<ApexChart options={deductChartOptions} />
 			</div>
-			<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
+			<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
 				{#if errorStats.length > 0}
 					<ApexChart options={errorChartOptions} />
 				{:else}
-					<div class="text-center py-12 text-on-surface-variant-token">
+					<div class="text-center py-12 text-gray-500">
 						暂无失误类型数据
 					</div>
 				{/if}
 			</div>
-			<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
+			<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
 				<ApexChart options={trendChartOptions} />
 			</div>
 		</div>
 
-		<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
-			<h3 class="font-semibold text-lg mb-4">各训练项目统计明细</h3>
+		<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+			<h3 class="font-semibold text-lg mb-4 text-gray-900">各训练项目统计明细</h3>
 			<div class="overflow-x-auto">
-				<table class="w-full border-collapse text-sm">
+				<table class="w-full border-collapse text-sm text-gray-800">
 					<thead>
-						<tr class="border-b border-surface-300-700-token">
-							<th class="text-left p-3 font-semibold">训练项目</th>
-							<th class="text-left p-3 font-semibold">练习次数</th>
-							<th class="text-left p-3 font-semibold">总扣分</th>
-							<th class="text-left p-3 font-semibold">平均扣分</th>
-							<th class="text-left p-3 font-semibold">需补训次数</th>
+						<tr class="border-b border-gray-200">
+							<th class="text-left p-3 font-semibold text-gray-900">训练项目</th>
+							<th class="text-left p-3 font-semibold text-gray-900">练习次数</th>
+							<th class="text-left p-3 font-semibold text-gray-900">总扣分</th>
+							<th class="text-left p-3 font-semibold text-gray-900">平均扣分</th>
+							<th class="text-left p-3 font-semibold text-gray-900">需补训次数</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each itemStats as stat}
-							<tr class="border-b border-surface-200-800-token">
+							<tr class="border-b border-gray-100 hover:bg-gray-50">
 								<td class="p-3 font-medium">{stat.item}</td>
 								<td class="p-3">{stat.count} 次</td>
 								<td class="p-3">
@@ -226,22 +383,22 @@
 		</div>
 
 		{#if !selectedStudent}
-			<div class="bg-surface-100-900-token rounded-lg p-4 shadow-sm border border-surface-200-800-token">
-				<h3 class="font-semibold text-lg mb-4">学员维度统计</h3>
+			<div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+				<h3 class="font-semibold text-lg mb-4 text-gray-900">学员维度统计</h3>
 				<div class="overflow-x-auto">
-					<table class="w-full border-collapse text-sm">
+					<table class="w-full border-collapse text-sm text-gray-800">
 						<thead>
-							<tr class="border-b border-surface-300-700-token">
-								<th class="text-left p-3 font-semibold">学员姓名</th>
-								<th class="text-left p-3 font-semibold">练习总次数</th>
-								<th class="text-left p-3 font-semibold">总扣分</th>
-								<th class="text-left p-3 font-semibold">平均扣分</th>
-								<th class="text-left p-3 font-semibold">需补训次数</th>
+							<tr class="border-b border-gray-200">
+								<th class="text-left p-3 font-semibold text-gray-900">学员姓名</th>
+								<th class="text-left p-3 font-semibold text-gray-900">练习总次数</th>
+								<th class="text-left p-3 font-semibold text-gray-900">总扣分</th>
+								<th class="text-left p-3 font-semibold text-gray-900">平均扣分</th>
+								<th class="text-left p-3 font-semibold text-gray-900">需补训次数</th>
 							</tr>
 						</thead>
 						<tbody>
 							{#each studentStats as stat}
-								<tr class="border-b border-surface-200-800-token">
+								<tr class="border-b border-gray-100 hover:bg-gray-50">
 									<td class="p-3 font-medium">{stat.name}</td>
 									<td class="p-3">{stat.count} 次</td>
 									<td class="p-3">

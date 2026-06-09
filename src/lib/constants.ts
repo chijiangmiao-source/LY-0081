@@ -24,9 +24,33 @@ export const ERROR_TYPES: ErrorType[] = [
 
 export const STORAGE_KEYS = {
 	RECORDS: 'driving_practice_records',
-	SUGGESTIONS: 'driving_suggestions'
+	SUGGESTIONS: 'driving_suggestions',
+	WARNINGS: 'driving_warning_records'
 } as const;
 
 export const MIN_DEDUCT = 0;
 export const MAX_DEDUCT = 20;
 export const AUTO_RETRAIN_THRESHOLD = 10;
+
+export const WARNING_THRESHOLDS = {
+	SCORE_STABLE_MIN: 70,
+	SCORE_ATTENTION_MIN: 40,
+	AVG_DEDUCT_ATTENTION: 5,
+	AVG_DEDUCT_ALERT: 8,
+	RETRAIN_RATE_ATTENTION: 0.2,
+	RETRAIN_RATE_ALERT: 0.4,
+	PRACTICE_MIN_COUNT: 3,
+	ERROR_TYPE_DOMINANCE_RATE: 0.4,
+	TREND_DECLINE_DELTA: 2
+} as const;
+
+export const WARNING_LEVEL_LABELS: Record<string, string> = {
+	stable: '稳定',
+	attention: '需关注',
+	alert: '重点预警'
+} as const;
+
+export const WARNING_SCOPE_LABELS: Record<string, string> = {
+	student: '学员维度',
+	item: '项目维度'
+} as const;

@@ -70,3 +70,57 @@ export interface SuggestionUsage {
 	usageByStudent: { studentName: string; count: number; recordIds: string[] }[];
 	totalUsage: number;
 }
+
+export type WarningLevel = 'stable' | 'attention' | 'alert';
+
+export type WarningScope = 'student' | 'item';
+
+export interface WarningReason {
+	code: string;
+	description: string;
+	weight: number;
+}
+
+export interface WarningTrendPoint {
+	date: string;
+	level: WarningLevel;
+	score: number;
+}
+
+export interface RetrainingSuggestion {
+	priority: 'high' | 'medium' | 'low';
+	content: string;
+	errorType?: ErrorType;
+}
+
+export interface WarningRecord {
+	id: string;
+	scope: WarningScope;
+	studentName: string;
+	trainingItem?: TrainingItem;
+	level: WarningLevel;
+	score: number;
+	periodStart: string;
+	periodEnd: string;
+	practiceCount: number;
+	avgDeduct: number;
+	retrainRate: number;
+	trendDirection: 'improving' | 'stable' | 'declining' | 'insufficient';
+	topErrorTypes: { type: ErrorType; count: number; rate: number }[];
+	reasons: WarningReason[];
+	trendHistory: WarningTrendPoint[];
+	suggestions: RetrainingSuggestion[];
+	recordIds: string[];
+	createdAt: number;
+	acknowledged: boolean;
+	acknowledgedAt?: number;
+}
+
+export interface WarningStats {
+	total: number;
+	stable: number;
+	attention: number;
+	alert: number;
+	byStudent: Map<string, number>;
+	byItem: Map<TrainingItem, number>;
+}

@@ -2,12 +2,62 @@
 	import { goto } from '$app/navigation';
 	import BaseModal from './BaseModal.svelte';
 	import ApexChart from './ApexChart.svelte';
-	import { AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
-	import type { StudentArchive, PracticeRecord, Suggestion } from '$lib/types';
+	import WarningDetailModal from './WarningDetailModal.svelte';
+	import {
+		AUTO_RETRAIN_THRESHOLD,
+		WARNING_LEVEL_LABELS
+	} from '$lib/constants';
+	import { getWarningsByStudent } from '$lib/storage';
+	import type {
+		StudentArchive,
+		PracticeRecord,
+		Suggestion,
+		WarningRecord
+	} from '$lib/types';
 
 	export let open = false;
 	export let archive: StudentArchive | null = null;
 	export let suggestions: Suggestion[] = [];
+
+	let studentWarnings: WarningRecord[] = [];
+	let warningDetailOpen = false;
+	let selectedWarning: WarningRecord | null = null;
+
+	$: {
+		if (archive) {
+			studentWarnings = getWarningsByStudent(archive.studentName);
+		} else {
+			studentWarnings = [];
+		}
+	}
+
+	function getWarningLevelBadgeClass(level: string): string {
+		switch (level) {
+			case 'stable':
+				return 'bg-green-100 text-green-800 border border-green-300';
+			case 'attention':
+				return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
+			case 'alert':
+				return 'bg-red-100 text-red-800 border border-red-300';
+			default:
+				return 'bg-gray-100 text-gray-800 border border-gray-300';
+		}
+	}
+
+	function getLatestWarning(): WarningRecord | null {
+		if (studentWarnings.length === 0) return null;
+		return studentWarnings[0];
+	}
+
+	function openWarningDetail(warning: WarningRecord) {
+		selectedWarning = warning;
+		warningDetailOpen = true;
+	}
+
+	function goToWarningCenter() {
+		open = false;
+		goto('/warnings');
+	}
 
 	function openRecordDetail(record: PracticeRecord) {
 		open = false;
@@ -92,6 +142,125 @@
 					</button>
 				</div>
 			</div>
+
+			{#if getLatestWarning()}
+				<div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200 mb-6">
+					<div class="flex items-start justify-between flex-wrap gap-3">
+						<div class="flex items-center gap-3">
+							<svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+							</svg>
+							<div>
+								<p class="text-sm text-gray-600">最新阶段测评状态</p>
+								<div class="flex items-center gap-2 mt-1 flex-wrap">
+									<span class="inline-block px-3 py-1 rounded text-sm font-bold {getWarningLevelBadgeClass(getLatestWarning()!.level)}">
+										{WARNING_LEVEL_LABELS[getLatestWarning()!.level]}
+									</span>
+									<span class="text-sm text-gray-600">
+										综合评分 {getLatestWarning()!.score} 分 · 评估周期 {getLatestWarning()!.periodStart} ~ {getLatestWarning()!.periodEnd}
+									</span>
+								</div>
+								{#if getLatestWarning()!.reasons.length > 0}
+									<p class="text-xs text-gray-500 mt-1">
+										主要原因：{getLatestWarning()!.reasons.slice(0, 2).map((r) => r.description).join('；')}
+									</p>
+								{/if}
+							</div>
+						</div>
+						<div class="flex gap-2 flex-wrap">
+							<button
+								class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 cursor-pointer font-medium text-sm inline-flex items-center gap-2"
+								on:click={() => openWarningDetail(getLatestWarning()!)}
+							>
+								查看测评详情
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+								</svg>
+							</button>
+							<button
+								class="px-4 py-2 rounded bg-white text-blue-700 border border-blue-300 hover:bg-blue-50 cursor-pointer font-medium text-sm"
+								on:click={goToWarningCenter}
+							>
+								预警中心
+							</button>
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			{#if studentWarnings.length > 0}
+				<div class="bg-white rounded-lg p-4 border border-gray-200 mb-6">
+					<div class="flex items-center justify-between mb-4">
+						<h4 class="font-semibold text-lg text-gray-900">阶段测评预警历史（{studentWarnings.length} 条）</h4>
+					</div>
+					<div class="overflow-x-auto max-h-64 overflow-y-auto">
+						<table class="w-full border-collapse text-sm text-gray-800">
+							<thead class="sticky top-0 bg-white">
+								<tr class="border-b border-gray-200">
+									<th class="text-left p-3 font-semibold text-gray-900">等级</th>
+									<th class="text-left p-3 font-semibold text-gray-900">范围</th>
+									<th class="text-left p-3 font-semibold text-gray-900">评分</th>
+									<th class="text-left p-3 font-semibold text-gray-900">评估周期</th>
+									<th class="text-left p-3 font-semibold text-gray-900">关键指标</th>
+									<th class="text-left p-3 font-semibold text-gray-900">状态</th>
+									<th class="text-left p-3 font-semibold text-gray-900">操作</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each studentWarnings as warning}
+									<tr class="border-b border-gray-100 hover:bg-gray-50">
+										<td class="p-3">
+											<span class="inline-block px-2 py-0.5 rounded text-xs font-bold {getWarningLevelBadgeClass(warning.level)}">
+												{WARNING_LEVEL_LABELS[warning.level]}
+											</span>
+										</td>
+										<td class="p-3">
+											{#if warning.trainingItem}
+												<span class="text-purple-600 font-medium">{warning.trainingItem}</span>
+											{:else}
+												<span class="text-blue-600 font-medium">学员综合</span>
+											{/if}
+										</td>
+										<td class="p-3">
+											<span class="font-bold {warning.score >= 70 ? 'text-green-600' : warning.score >= 40 ? 'text-yellow-600' : 'text-red-600'}">
+												{warning.score}
+											</span>
+										</td>
+										<td class="p-3 text-xs text-gray-500">
+											{warning.periodStart}<br/>~ {warning.periodEnd}
+										</td>
+										<td class="p-3 text-xs">
+											<div class="space-y-0.5">
+												<p>练习 {warning.practiceCount} 次</p>
+												<p>扣均 {warning.avgDeduct} · 补训率 {(warning.retrainRate * 100).toFixed(0)}%</p>
+											</div>
+										</td>
+										<td class="p-3">
+											{#if warning.acknowledged}
+												<span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">
+													已确认
+												</span>
+											{:else}
+												<span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+													待确认
+												</span>
+											{/if}
+										</td>
+										<td class="p-3">
+											<button
+												class="px-3 py-1 text-sm rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 cursor-pointer"
+												on:click={() => openWarningDetail(warning)}
+											>
+												查看详情
+											</button>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			{/if}
 
 			<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
 				<div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
