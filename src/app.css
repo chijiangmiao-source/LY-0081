@@ -4,7 +4,7 @@
 
 @layer base {
 	html, body {
-		@apply h-full overflow-hidden;
+		@apply h-full overflow-y-auto overflow-x-hidden;
 	}
 	body {
 		@apply bg-surface-50-900-token text-on-surface-token;

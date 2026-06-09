@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { Modal } from '@skeletonlabs/skeleton';
 	import { getRecords, deleteRecord } from '$lib/storage';
 	import { TRAINING_ITEMS, AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
 	import type { PracticeRecord, TrainingItem, FilterOptions } from '$lib/types';
@@ -17,9 +16,6 @@
 		startDate: '',
 		endDate: ''
 	};
-
-	let deleteModalOpen = false;
-	let deletingId = '';
 
 	onMount(() => {
 		loadRecords();
@@ -66,15 +62,10 @@
 	}
 
 	function confirmDelete(id: string) {
-		deletingId = id;
-		deleteModalOpen = true;
-	}
-
-	function handleDelete() {
-		deleteRecord(deletingId);
-		deleteModalOpen = false;
-		deletingId = '';
-		loadRecords();
+		if (confirm('确定要删除这条练习记录吗？此操作不可恢复。')) {
+			deleteRecord(id);
+			loadRecords();
+		}
 	}
 
 	function getDeductBadgeClass(count: number): string {
@@ -256,24 +247,3 @@
 		{/if}
 	</div>
 </div>
-
-<Modal bind:open={deleteModalOpen} width="max-w-md">
-	<div class="p-5">
-		<h3 class="text-lg font-bold mb-4">确认删除</h3>
-		<p class="mb-4">确定要删除这条练习记录吗？此操作不可恢复。</p>
-		<div class="flex justify-end gap-2">
-			<button
-				class="px-4 py-2 rounded border border-surface-300-700-token hover:bg-surface-200-800-token cursor-pointer font-medium"
-				on:click={() => (deleteModalOpen = false)}
-			>
-				取消
-			</button>
-			<button
-				class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 cursor-pointer font-medium"
-				on:click={handleDelete}
-			>
-				确认删除
-			</button>
-		</div>
-	</div>
-</Modal>
