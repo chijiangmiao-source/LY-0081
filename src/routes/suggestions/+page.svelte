@@ -1,19 +1,32 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import BaseModal from '$lib/components/BaseModal.svelte';
+	import RecordDetailModal from '$lib/components/RecordDetailModal.svelte';
 	import {
 		getSuggestions,
 		addSuggestion,
 		updateSuggestion,
 		deleteSuggestion,
-		generateId
+		generateId,
+		getRecords,
+		updateRecord
 	} from '$lib/storage';
-	import { ERROR_TYPES } from '$lib/constants';
-	import type { Suggestion, ErrorType } from '$lib/types';
+	import { ERROR_TYPES, AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
+	import type { Suggestion, ErrorType, PracticeRecord } from '$lib/types';
 
 	let suggestions: Suggestion[] = [];
+	let allRecords: PracticeRecord[] = [];
 	let modalOpen = false;
 	let editingSuggestion: Suggestion | null = null;
+
+	let applyModalOpen = false;
+	let applyingSuggestion: Suggestion | null = null;
+	let recordsByErrorType: PracticeRecord[] = [];
+	let selectedRecordId: string = '';
+	let applySuccessMsg = '';
+
+	let detailModalOpen = false;
+	let selectedRecord: PracticeRecord | null = null;
 
 	let form = {
 		errorType: ERROR_TYPES[0] as ErrorType,
@@ -24,10 +37,15 @@
 
 	onMount(() => {
 		loadSuggestions();
+		loadRecords();
 	});
 
 	function loadSuggestions() {
 		suggestions = getSuggestions().sort((a, b) => b.createdAt - a.createdAt);
+	}
+
+	function loadRecords() {
+		allRecords = getRecords().sort((a, b) => b.createdAt - a.createdAt);
 	}
 
 	function openAdd() {
@@ -86,6 +104,48 @@
 	function getSuggestionsByErrorType(type: ErrorType): Suggestion[] {
 		return suggestions.filter((s) => s.errorType === type);
 	}
+
+	function getRecordsByErrorType(type: ErrorType): PracticeRecord[] {
+		return allRecords.filter((r) => r.mainErrorType === type);
+	}
+
+	function openApplyModal(s: Suggestion) {
+		applyingSuggestion = s;
+		recordsByErrorType = getRecordsByErrorType(s.errorType);
+		selectedRecordId = '';
+		applySuccessMsg = '';
+		applyModalOpen = true;
+	}
+
+	function applySuggestionToRecord() {
+		if (!applyingSuggestion || !selectedRecordId) return;
+		const record = allRecords.find((r) => r.id === selectedRecordId);
+		if (!record) return;
+
+		updateRecord({
+			...record,
+			improvementSuggestion: applyingSuggestion.content,
+			updatedAt: Date.now()
+		});
+
+		applySuccessMsg = `建议已成功应用到记录 ${record.recordNo}`;
+		loadRecords();
+		setTimeout(() => {
+			applySuccessMsg = '';
+		}, 3000);
+	}
+
+	function openRecordDetail(record: PracticeRecord) {
+		selectedRecord = record;
+		detailModalOpen = true;
+	}
+
+	function getDeductBadgeClass(count: number): string {
+		if (count === 0) return 'bg-green-100 text-green-800 border border-green-300';
+		if (count <= 5) return 'bg-green-50 text-green-700 border border-green-200';
+		if (count <= AUTO_RETRAIN_THRESHOLD) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
+		return 'bg-red-100 text-red-800 border border-red-300';
+	}
 </script>
 
 <svelte:head>
@@ -131,6 +191,12 @@
 									<span class="text-primary-500 font-bold min-w-[24px]">{index + 1}.</span>
 									<p class="flex-1">{s.content}</p>
 									<div class="flex gap-2 shrink-0">
+										<button
+											class="px-3 py-1 text-sm rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 cursor-pointer"
+											on:click={() => openApplyModal(s)}
+										>
+											引用
+										</button>
 										<button
 											class="px-3 py-1 text-sm rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 cursor-pointer"
 											on:click={() => openEdit(s)}
@@ -178,6 +244,12 @@
 								</td>
 								<td class="p-3">
 									<div class="flex gap-2">
+										<button
+											class="px-3 py-1 text-sm rounded bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 cursor-pointer"
+											on:click={() => openApplyModal(s)}
+										>
+											引用
+										</button>
 										<button
 											class="px-3 py-1 text-sm rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 cursor-pointer"
 											on:click={() => openEdit(s)}
@@ -248,3 +320,99 @@
 		</div>
 	</div>
 </BaseModal>
+
+<BaseModal bind:open={applyModalOpen} width="max-w-2xl">
+	<div class="p-5">
+		<h3 class="text-lg font-bold mb-2">引用建议到练习记录</h3>
+		{#if applyingSuggestion}
+			<div class="mb-4 p-3 bg-surface-50-900-token rounded border border-surface-200-800-token">
+				<div class="flex items-center gap-2 mb-2">
+					<span class="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+						{applyingSuggestion.errorType}
+					</span>
+				</div>
+				<p class="text-sm">{applyingSuggestion.content}</p>
+			</div>
+		{/if}
+
+		{#if applySuccessMsg}
+			<div class="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
+				{applySuccessMsg}
+			</div>
+		{/if}
+
+		<div class="mb-3">
+			<p class="text-sm font-medium mb-2">
+				选择要应用建议的练习记录（同失误类型：
+				{applyingSuggestion?.errorType || '-'}，共 {recordsByErrorType.length} 条）：
+			</p>
+		</div>
+
+		{#if recordsByErrorType.length === 0}
+			<div class="py-8 text-center text-on-surface-variant-token">
+				<p>暂无该失误类型的练习记录</p>
+			</div>
+		{:else}
+			<div class="max-h-80 overflow-y-auto border border-surface-200-800-token rounded">
+				<div class="space-y-1 p-2">
+					{#each recordsByErrorType as record}
+						<label
+							class="flex items-center gap-3 p-3 rounded hover:bg-surface-50-900-token cursor-pointer border {selectedRecordId === record.id ? 'border-primary-500 bg-primary-50' : 'border-transparent'}"
+						>
+							<input
+								type="radio"
+								bind:group={selectedRecordId}
+								value={record.id}
+								class="w-4 h-4 cursor-pointer"
+							/>
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2 flex-wrap">
+									<span class="font-mono text-sm">{record.recordNo}</span>
+									<span class="text-sm font-medium">{record.studentName}</span>
+									<span class="text-sm text-on-surface-variant-token">{record.practiceDate}</span>
+									<span class="text-sm">{record.trainingItem}</span>
+									<span class="inline-block px-2 py-0.5 rounded text-xs font-bold {getDeductBadgeClass(record.deductCount)}">
+										{record.deductCount} 分
+									</span>
+								</div>
+								<p class="text-xs text-on-surface-variant-token mt-1 truncate">
+									当前建议：{record.improvementSuggestion || '（无）'}
+								</p>
+							</div>
+							<button
+								type="button"
+								class="px-2 py-1 text-xs rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 cursor-pointer shrink-0"
+								on:click|stopPropagation={() => openRecordDetail(record)}
+							>
+								查看
+							</button>
+						</label>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<div class="flex justify-end gap-2 pt-4 mt-4 border-t border-surface-200-800-token">
+			<button
+				class="px-4 py-2 rounded border border-surface-300-700-token hover:bg-surface-200-800-token cursor-pointer font-medium"
+				on:click={() => (applyModalOpen = false)}
+			>
+				关闭
+			</button>
+			<button
+				class="px-4 py-2 rounded bg-primary-500 text-white hover:bg-primary-600 cursor-pointer font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+				on:click={applySuggestionToRecord}
+				disabled={!selectedRecordId}
+			>
+				应用建议
+			</button>
+		</div>
+	</div>
+</BaseModal>
+
+<RecordDetailModal
+	bind:open={detailModalOpen}
+	bind:record={selectedRecord}
+	{suggestions}
+/>
+<svelte:window on:storage={loadSuggestions} />

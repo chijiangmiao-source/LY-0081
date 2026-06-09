@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { getRecords, deleteRecord } from '$lib/storage';
+	import { getRecords, deleteRecord, getSuggestions } from '$lib/storage';
 	import { TRAINING_ITEMS, AUTO_RETRAIN_THRESHOLD } from '$lib/constants';
-	import type { PracticeRecord, TrainingItem, FilterOptions } from '$lib/types';
+	import type { PracticeRecord, TrainingItem, FilterOptions, Suggestion } from '$lib/types';
+	import RecordDetailModal from '$lib/components/RecordDetailModal.svelte';
 
 	let records: PracticeRecord[] = [];
 	let filteredRecords: PracticeRecord[] = [];
 	let uniqueStudents: string[] = [];
+	let suggestions: Suggestion[] = [];
+
+	let detailModalOpen = false;
+	let selectedRecord: PracticeRecord | null = null;
 
 	let filters: FilterOptions = {
 		searchText: '',
@@ -35,7 +40,24 @@
 	function loadRecords() {
 		records = getRecords().sort((a, b) => b.createdAt - a.createdAt);
 		uniqueStudents = [...new Set(records.map((r) => r.studentName))];
+		suggestions = getSuggestions();
 		applyFilters();
+	}
+
+	function openDetail(record: PracticeRecord) {
+		selectedRecord = record;
+		detailModalOpen = true;
+	}
+
+	function refreshSelectedRecord() {
+		const currentId = selectedRecord?.id;
+		if (currentId) {
+			const updated = getRecords().find((r) => r.id === currentId);
+			if (updated) {
+				selectedRecord = updated;
+			}
+			loadRecords();
+		}
 	}
 
 	function applyFilters() {
@@ -205,7 +227,7 @@
 					</thead>
 					<tbody>
 						{#each filteredRecords as record}
-							<tr class="border-b border-surface-200-800-token hover:bg-surface-50-900-token">
+							<tr class="border-b border-surface-200-800-token hover:bg-surface-50-900-token cursor-pointer" on:click={() => openDetail(record)}>
 								<td class="p-3 font-mono">{record.recordNo}</td>
 								<td class="p-3">{record.studentName}</td>
 								<td class="p-3">{record.practiceDate}</td>
@@ -223,8 +245,14 @@
 										<span class="inline-block px-2 py-1 rounded text-xs font-bold bg-green-50 text-green-700 border border-green-200">否</span>
 									{/if}
 								</td>
-								<td class="p-3">
+								<td class="p-3" on:click|stopPropagation>
 									<div class="flex gap-2">
+										<button
+											class="px-3 py-1 text-sm rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 cursor-pointer"
+											on:click={() => openDetail(record)}
+										>
+											详情
+										</button>
 										<button
 											class="px-3 py-1 text-sm rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 cursor-pointer"
 											on:click={() => editRecord(record.id)}
@@ -240,7 +268,7 @@
 									</div>
 								</td>
 							</tr>
-							<tr class="bg-surface-50-900-token">
+							<tr class="bg-surface-50-900-token cursor-pointer" on:click={() => openDetail(record)}>
 								<td colspan="8" class="p-3">
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 										<div>
@@ -264,3 +292,10 @@
 		{/if}
 	</div>
 </div>
+
+<RecordDetailModal
+	bind:open={detailModalOpen}
+	bind:record={selectedRecord}
+	{suggestions}
+/>
+<svelte:window on:storage={loadRecords} />
